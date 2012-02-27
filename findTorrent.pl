@@ -13,6 +13,9 @@ use File::Basename;
 use lib '/usr/local/spidering/bots/utils';
 use Fetch;
 
+# Prototypes
+sub findSE($);
+
 # Command line
 my ($dir, $search) = @ARGV;
 if (!defined($dir) || (!defined($search) && !-d $dir)) {
@@ -288,7 +291,7 @@ if (defined($search) && length($search) > 0) {
 						$url .= $source->{'search_suffix'};
 					}
 					push(@urls, $url);
-					
+
 					# SxEE
 					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+' . $season . 'x' . $episode_long;
 					if ($source->{'search_suffix'}) {
@@ -365,24 +368,8 @@ foreach my $tr (@trs) {
 	}
 	$title =~ s/^\s+//;
 
-	# Extract the season number
-	my $isWholeSeason = 0;
-	my $fileSeason    = 0;
-	if ($title =~ /s0?([1-9]\d*)/i) {
-		$fileSeason = $1;
-		if ((!defined($fileSeason) || $season < 1) && $title =~ /season\s*0?([1-9]\d*)/i) {
-			$fileSeason    = $1;
-			$isWholeSeason = 1;
-		}
-	}
-
-	# Extract the episode number
-	my $episode = 0;
-	if ($isWholeSeason) {
-		$episode = $need[0];
-	} elsif ($title =~ /e0*([1-9]\d*)/i) {
-		$episode = $1;
-	}
+	# Extract the season and episode numbers
+	my ($fileSeason, $episode) = findSE($title);
 
 	# Extract the URL
 	my ($url) = $tr =~ /\<a\s+href\=\"(magnet\:\?[^\"]+)\"/i;
@@ -419,15 +406,14 @@ foreach my $tr (@trs) {
 
 	# Save the extracted data
 	my %tor = (
-		'title'     => $title,
-		'is_season' => $isWholeSeason,
-		'season'    => $fileSeason,
-		'episode'   => $episode,
-		'seeds'     => $seeds,
-		'leaches'   => $leaches,
-		'size'      => $size,
-		'url'       => $url,
-		'source'    => 'TPB'
+		'title'   => $title,
+		'season'  => $fileSeason,
+		'episode' => $episode,
+		'seeds'   => $seeds,
+		'leaches' => $leaches,
+		'size'    => $size,
+		'url'     => $url,
+		'source'  => 'TPB'
 	);
 	push(@tors, \%tor);
 }
@@ -441,24 +427,8 @@ foreach my $json (@json_content) {
 		$title =~ s/\<\/?b\>//gi;
 		$title =~ s/^\s+//;
 
-		# Extract the season number
-		my $isWholeSeason = 0;
-		my $fileSeason    = 0;
-		if ($tor->{'title'} =~ /s0?([1-9]\d*)/i) {
-			$fileSeason = $1;
-			if ((!defined($fileSeason) || $season < 1) && $tor->{'title'} =~ /season\s*0?([1-9]\d*)/i) {
-				$fileSeason    = $1;
-				$isWholeSeason = 1;
-			}
-		}
-
-		# Extract the episode number
-		my $episode = 0;
-		if ($isWholeSeason) {
-			$episode = $need[0];
-		} elsif ($tor->{'title'} =~ /e0*([1-9]\d*)/i) {
-			$episode = $1;
-		}
+		# Extract the season and episode numbers
+		my ($fileSeason, $episode) = findSE($tor->{'title'});
 
 		# Count the sum of seeders and leachers
 		my $seeds   = 0;
@@ -482,15 +452,14 @@ foreach my $json (@json_content) {
 
 		# Save the extracted data
 		my %tmp = (
-			'title'     => $title,
-			'is_season' => $isWholeSeason,
-			'season'    => $fileSeason,
-			'episode'   => $episode,
-			'seeds'     => $seeds,
-			'leaches'   => $leaches,
-			'size'      => $size,
-			'url'       => $tor->{'enclosure_url'},
-			'source'    => 'ISO'
+			'title'   => $title,
+			'season'  => $fileSeason,
+			'episode' => $episode,
+			'seeds'   => $seeds,
+			'leaches' => $leaches,
+			'size'    => $size,
+			'url'     => $tor->{'enclosure_url'},
+			'source'  => 'ISO'
 		);
 		push(@tors, \%tmp);
 	}
@@ -545,11 +514,11 @@ foreach my $tor (@tors) {
 		next;
 	}
 
-	# Only apply season and episode number matches if CUSTOMER_SEARCH is not in effect
+	# Only apply season and episode number matches if CUSTOM_SEARCH is not in effect
 	if (!$CUSTOM_SEARCH) {
 
 		# Skip files that don't contain the right season number
-		if (!$tor->{'is_season'} && (!defined($tor->{'season'}) || $tor->{'season'} != $season)) {
+		if (!defined($tor->{'season'}) || $tor->{'season'} != $season) {
 			if ($DEBUG) {
 				print STDERR 'Skipping file: No match for season number (' . $season . '): ' . $tor->{'url'} . "\n";
 			}
@@ -658,3 +627,25 @@ foreach my $episode (keys(%tors)) {
 # Cleanup
 unlink($cookies);
 exit(0);
+
+# Extract season
+sub findSE($) {
+	my ($title) = @_;
+	my $season  = 0;
+	my $episode = 0;
+
+	if ($title =~ /s(?:eason)?\s*(\d+)/i) {
+		$season = $1;
+	} elsif ($title =~ /\b(\d+)x(\d+)\b/i) {
+		$season  = $1;
+		$episode = $2;
+	}
+
+	if (!$episode && $title =~ /e(?:ipsode)?\s*(\d+)/i) {
+		$episode = $1;
+	}
+
+	$season  = int($season);
+	$episode = int($episode);
+	return ($season, $episode);
+}
