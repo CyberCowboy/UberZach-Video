@@ -276,14 +276,21 @@ if (defined($search) && length($search) > 0) {
 					push(@urls, $url);
 
 					# SXX EYY
-					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+s' . $season . '+e' . $episode;
+					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+s' . $season_long . '+e' . $episode_long;
 					if ($source->{'search_suffix'}) {
 						$url .= $source->{'search_suffix'};
 					}
 					push(@urls, $url);
 
 					# Season XX Episode YY
-					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+season+' . $season . '+episode+' . $episode;
+					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+season+' . $season_long . '+episode+' . $episode_long;
+					if ($source->{'search_suffix'}) {
+						$url .= $source->{'search_suffix'};
+					}
+					push(@urls, $url);
+					
+					# SxEE
+					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+' . $season . 'x' . $episode_long;
 					if ($source->{'search_suffix'}) {
 						$url .= $source->{'search_suffix'};
 					}
