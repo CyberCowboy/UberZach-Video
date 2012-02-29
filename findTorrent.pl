@@ -292,6 +292,13 @@ if (defined($search) && length($search) > 0) {
 					}
 					push(@urls, $url);
 
+					# Series X Episode Y
+					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+series+' . $season . '+episode+' . $episode;
+					if ($source->{'search_suffix'}) {
+						$url .= $source->{'search_suffix'};
+					}
+					push(@urls, $url);
+
 					# SxEE
 					$url = $PROTOCOL . '://' . $source->{'search_url'} . $quote . $urlShow . $quote . '+' . $season . 'x' . $episode_long;
 					if ($source->{'search_suffix'}) {
@@ -634,7 +641,7 @@ sub findSE($) {
 	my $season  = 0;
 	my $episode = 0;
 
-	if ($title =~ /s(?:eason)?\s*(\d+)/i) {
+	if ($title =~ /s(?:eason|eries)?\s*(\d+)/i) {
 		$season = $1;
 	} elsif ($title =~ /\b(\d+)x(\d+)\b/i) {
 		$season  = $1;
