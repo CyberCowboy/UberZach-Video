@@ -10,9 +10,9 @@ use File::Basename;
 use HTTP::Request::Common;
 
 # Parameters
-my ($host, $user, $pass, $section) = @ARGV;
-if (!$host || !$user || !$pass || !$section) {
-	die('Usage: ' . basename($0) . ' host[:port] user passwd section_number');
+my ($host, $user, $pass, $section, $series) = @ARGV;
+if (!$host || !$user || !$pass || (!$section && !$series)) {
+	die('Usage: ' . basename($0) . ' host[:port] user passwd section_number [series_metadata_number]');
 }
 
 # Globals
@@ -20,22 +20,30 @@ my $baseURL = 'http://' . $host;
 my $auth    = 'X-Plex-User=' . $user . '&X-Plex-Pass=' . $pass;
 my $xml     = new XML::Simple;
 
-# Fetch the list of all shows in the section
 my @shows = ();
-print STDERR "Fetching shows...\n";
-{
-	my $content = get($baseURL . '/library/sections/' . $section . '/all/?' . $auth);
-	if (!$content) {
-		die(basename($0) . ': Unable to fetch data for section: ' . $section . "\n");
-	}
+if ($series) {
 
-	# Find all TV shows in the section
+	# Fetch just the provided show
+	print STDERR 'Fetching show ' . $series . "\n";
+	@shows = ('/library/metadata/' . $series . '/children');
+} else {
+
+	# Fetch the list of all shows in the section
+	print STDERR "Fetching shows...\n";
 	{
-		my $tree = $xml->XMLin($content);
-		@shows = keys(%{ $tree->{'Directory'} });
+		my $content = get($baseURL . '/library/sections/' . $section . '/all/?' . $auth);
+		if (!$content) {
+			die(basename($0) . ': Unable to fetch data for section: ' . $section . "\n");
+		}
+
+		# Find all TV shows in the section
+		{
+			my $tree = $xml->XMLin($content);
+			@shows = keys(%{ $tree->{'Directory'} });
+		}
 	}
+	print STDERR 'Found ' . scalar(@shows) . " shows\n";
 }
-print STDERR 'Found ' . scalar(@shows) . " shows\n";
 
 # Fetch the list of all seasons in each show
 my @seasons = ();
