@@ -232,13 +232,21 @@ sub audioOptions($) {
 	my @ac3      = ();
 	my @dts      = ();
 	foreach my $track (@{ $scan->{'audio'} }) {
-		my ($language, $codec, $chans, $iso) = $track->{'description'} =~ /^([^\(]+)\s+\(([^\)]+)\)\s+\((\d+\.\d+)\s+ch\)(?:\s+\(([^\)]+)\))?/;
+		my ($language, $codec, $chans, $iso) = $track->{'description'} =~ /^([^\(]+)\s+\(([^\)]+)\)\s+\((\d+\.\d+\s+ch|Dolby\s+Surround)\)(?:\s+\(([^\)]+)\))?/;
+		if (!defined($chans)) {
+			print STDERR 'Could not parse audio description: ' . $track->{'description'} . "\n";
+
+			# Temporarily exit on parsing errors -- at least until we're sure about this new parser
+			exit(1);
+			next;
+		}
+		if ($chans =~ /(\d+\.\d+)\s+ch/i) {
+			$chans = $1;
+		} elsif ($chans =~ /Dolby\s+Surround/i) {
+			$chans = 3.1;
+		}
 		if ($DEBUG) {
 			print STDERR 'Found audio track: codec => ' . $codec . ', channels => ' . $chans . ', language => ' . $language . ', ISO => ' . $iso . "\n";
-		}
-		if (!defined($chans) || $chans < 1) {
-			print STDERR 'Could not parse audio description: ' . $track->{'description'} . "\n";
-			next;
 		}
 
 		# Record the number of channels in each track
