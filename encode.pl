@@ -224,17 +224,30 @@ sub audioOptions($) {
 	my ($scan) = @_;
 
 	# Type the audio tracks
-	my $oat = undef();
-	my $aac = undef();
-	my $mpg = undef();
-	my @pcm = ();
-	my @ac3 = ();
-	my @dts = ();
+	my $oat      = undef();
+	my $aac      = undef();
+	my $mpg      = undef();
+	my @channels = ();
+	my @pcm      = ();
+	my @ac3      = ();
+	my @dts      = ();
 	foreach my $track (@{ $scan->{'audio'} }) {
-		if ($track->{'description'} =~ /\bAC3\b/i) {
-			if (my ($lang) = $track->{'description'} =~ /\b(Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b/i) {
+		my ($language, $codec, $chans, $iso) = $track->{'description'} =~ /^([^\(]+)\s+\(([^\)]+)\)\s+\((\d+\.\d+)\s+ch\)(?:\s+\(([^\)]+)\))?/;
+		if ($DEBUG) {
+			print STDERR 'Found audio track: codec => ' . $codec . ', channels => ' . $chans . ', language => ' . $language . ', ISO => ' . $iso . "\n";
+		}
+		if (!defined($chans) || $chans < 1) {
+			print STDERR 'Could not parse audio description: ' . $track->{'description'} . "\n";
+			next;
+		}
+
+		# Record the number of channels in each track
+		$channels[ $track->{'index'} ] = $chans;
+
+		if ($codec =~ /AC3/i) {
+			if ($language =~ /\b(Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b/i) {
 				if ($DEBUG) {
-					print STDERR 'Skipping AC3 in track ' . $track->{'index'} . ' due to language: ' . $lang . "\n";
+					print STDERR 'Skipping AC3 in track ' . $track->{'index'} . ' due to language: ' . $language . "\n";
 				}
 				next;
 			}
@@ -242,23 +255,23 @@ sub audioOptions($) {
 			if ($DEBUG) {
 				print STDERR 'Found AC3 in track ' . $track->{'index'} . "\n";
 			}
-		} elsif ($track->{'description'} =~ /\bAAC\b/i) {
+		} elsif ($codec =~ /AAC/i) {
 			$aac = $track->{'index'};
 			if ($DEBUG) {
 				print STDERR 'Found AAC in track ' . $track->{'index'} . "\n";
 			}
-		} elsif ($track->{'description'} =~ /\bMP3\b/i || $track->{'description'} =~ /\bMPEG\b/i) {
+		} elsif ($codec =~ /MP3/i || $codec =~ /MPEG/i) {
 			$mpg = $track->{'index'};
 			if ($DEBUG) {
 				print STDERR 'Found MPEG/MP3 in track ' . $track->{'index'} . "\n";
 			}
-		} elsif ($track->{'description'} =~ /\bPCM_[SF]\d+/i) {
+		} elsif ($codec =~ /PCM_[SF]\d+/i) {
 			push(@pcm, $track->{'index'});
 			if ($DEBUG) {
 				print STDERR 'Found PCM in track ' . $track->{'index'} . "\n";
 			}
-		} elsif ($track->{'description'} =~ /\bDTS\b/i) {
-			if ($track->{'description'} =~ /\bDTS\-MA\b/i) {
+		} elsif ($codec =~ /DTS/i) {
+			if ($codec =~ /DTS\-MA/i) {
 				if ($DEBUG) {
 					print STDERR 'Skipping DTS-MA in track ' . $track->{'index'} . " due to poor DTS-MA support in HandBrake\n";
 				}
@@ -268,7 +281,7 @@ sub audioOptions($) {
 			if ($DEBUG) {
 				print STDERR 'Found DTS in track ' . $track->{'index'} . "\n";
 			}
-		} elsif ($track->{'description'} =~ /\(MP2\)/i) {
+		} elsif ($codec =~ /MP2/i) {
 			$oat = $track->{'index'};
 			if ($DEBUG) {
 				print STDERR 'Found other audio (' . $track->{'description'} . ') in track ' . $track->{'index'} . "\n";
@@ -276,15 +289,22 @@ sub audioOptions($) {
 		}
 	}
 
+	# We should sort the different codecs by number of channels
+	# But so far I've had good luck just taking the first track with the best codec
+
 	# Pick a stereo/mixdown plan based on the available track types
 	my $stereo  = undef();
 	my $mixdown = undef();
 	if (scalar(@dts) > 0) {
 		$mixdown = $dts[0];
-	} elsif (scalar(@ac3) > 0) {
-		$mixdown = $ac3[0];
-	} elsif (scalar(@pcm) > 0) {
-		$mixdown = $pcm[0];
+	} elsif (scalar(@ac3) > 0 || scalar(@pcm) > 0) {
+		if (scalar(@pcm) < 1) {
+			$mixdown = $ac3[0];
+		} elsif (scalar(@ac3) < 1) {
+			$mixdown = $pcm[0];
+		} elsif ($channels[ $pcm[0] ] >= $channels[ $ac3[0] ]) {
+			$mixdown = $pcm[0];
+		}
 	} elsif (defined($aac) && $aac > 0) {
 		$stereo = $aac;
 	} elsif (defined($mpg) && $mpg > 0) {
