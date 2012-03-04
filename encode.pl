@@ -227,6 +227,7 @@ sub audioOptions($) {
 	my $oat = undef();
 	my $aac = undef();
 	my $mpg = undef();
+	my @pcm = ();
 	my @ac3 = ();
 	my @dts = ();
 	foreach my $track (@{ $scan->{'audio'} }) {
@@ -251,6 +252,11 @@ sub audioOptions($) {
 			if ($DEBUG) {
 				print STDERR 'Found MPEG/MP3 in track ' . $track->{'index'} . "\n";
 			}
+		} elsif ($track->{'description'} =~ /\bPCM_[SF]\d+/i) {
+			push(@pcm, $track->{'index'});
+			if ($DEBUG) {
+				print STDERR 'Found PCM in track ' . $track->{'index'} . "\n";
+			}
 		} elsif ($track->{'description'} =~ /\bDTS\b/i) {
 			if ($track->{'description'} =~ /\bDTS\-MA\b/i) {
 				if ($DEBUG) {
@@ -262,7 +268,7 @@ sub audioOptions($) {
 			if ($DEBUG) {
 				print STDERR 'Found DTS in track ' . $track->{'index'} . "\n";
 			}
-		} elsif ($track->{'description'} =~ /\((?:MP2|PCM_[SF]\d+)\)/) {
+		} elsif ($track->{'description'} =~ /\(MP2\)/i) {
 			$oat = $track->{'index'};
 			if ($DEBUG) {
 				print STDERR 'Found other audio (' . $track->{'description'} . ') in track ' . $track->{'index'} . "\n";
@@ -277,6 +283,8 @@ sub audioOptions($) {
 		$mixdown = $dts[0];
 	} elsif (scalar(@ac3) > 0) {
 		$mixdown = $ac3[0];
+	} elsif (scalar(@pcm) > 0) {
+		$mixdown = $pcm[0];
 	} elsif (defined($aac) && $aac > 0) {
 		$stereo = $aac;
 	} elsif (defined($mpg) && $mpg > 0) {
@@ -320,15 +328,22 @@ sub audioOptions($) {
 		}
 	}
 
-	# Always keep AC3 if we found it (and liked it)
-	if (scalar(@ac3) > 0) {
-		foreach my $ac3_track (@ac3) {
-			if ($DEBUG) {
-				print STDERR 'Keeping AC3 passthru track: ' . $ac3_track . "\n";
-			}
-			my %track = ('index' => $ac3_track, 'encoder' => 'copy:ac3');
-			push(@audio_tracks, \%track);
+	# Always keep PCM if we found it (but recode to AAC)
+	foreach my $pcm_track (@pcm) {
+		if ($DEBUG) {
+			print STDERR 'Keeping PCM track as AAC: ' . $pcm_track . "\n";
 		}
+		my %track = ('index' => $pcm_track, 'encoder' => 'ca_aac');
+		push(@audio_tracks, \%track);
+	}
+
+	# Always keep AC3 if we found it (and liked it)
+	foreach my $ac3_track (@ac3) {
+		if ($DEBUG) {
+			print STDERR 'Keeping AC3 passthru track: ' . $ac3_track . "\n";
+		}
+		my %track = ('index' => $ac3_track, 'encoder' => 'copy:ac3');
+		push(@audio_tracks, \%track);
 	}
 
 	# Consolidate from the hashes
