@@ -265,7 +265,6 @@ sub audioOptions($) {
 			}
 		} elsif ($codec =~ /AAC/i) {
 			push(@aac, $track->{'index'});
-			$aac = $track->{'index'};
 			if ($DEBUG) {
 				print STDERR 'Found AAC in track ' . $track->{'index'} . "\n";
 			}
@@ -357,6 +356,16 @@ sub audioOptions($) {
 			my %track = ('index' => $dts_track, 'encoder' => 'copy:dts');
 			push(@audio_tracks, \%track);
 		}
+	}
+
+	# Always keep AAC if we found it (and liked it)
+	# Passthru would be great, but HandBrake does not do AAC passthru
+	foreach my $aac_track (@aac) {
+		if ($DEBUG) {
+			print STDERR 'Keeping AAC track as CoreAudio AAC: ' . $aac_track . "\n";
+		}
+		my %track = ('index' => $aac_track, 'encoder' => 'ca_aac');
+		push(@audio_tracks, \%track);
 	}
 
 	# Always keep PCM if we found it (but recode to AAC)
