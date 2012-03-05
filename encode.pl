@@ -225,12 +225,12 @@ sub audioOptions($) {
 
 	# Type the audio tracks
 	my $oat      = undef();
-	my $aac      = undef();
 	my $mpg      = undef();
 	my @channels = ();
 	my @pcm      = ();
 	my @ac3      = ();
 	my @dts      = ();
+	my @aac      = ();
 	foreach my $track (@{ $scan->{'audio'} }) {
 		my ($language, $codec, $chans, $iso) = $track->{'description'} =~ /^([^\(]+)\s+\(([^\)]+)\)\s+\((\d+\.\d+\s+ch|Dolby\s+Surround)\)(?:\s+\(([^\)]+)\))?/;
 		if (!defined($chans)) {
@@ -264,6 +264,7 @@ sub audioOptions($) {
 				print STDERR 'Found AC3 in track ' . $track->{'index'} . "\n";
 			}
 		} elsif ($codec =~ /AAC/i) {
+			push(@aac, $track->{'index'});
 			$aac = $track->{'index'};
 			if ($DEBUG) {
 				print STDERR 'Found AAC in track ' . $track->{'index'} . "\n";
@@ -305,6 +306,8 @@ sub audioOptions($) {
 	my $mixdown = undef();
 	if (scalar(@dts) > 0) {
 		$mixdown = $dts[0];
+	} elsif (scalar(@aac) > 0) {
+		$mixdown = $aac[0];
 	} elsif (scalar(@ac3) > 0 || scalar(@pcm) > 0) {
 		if (scalar(@pcm) < 1) {
 			$mixdown = $ac3[0];
@@ -312,9 +315,9 @@ sub audioOptions($) {
 			$mixdown = $pcm[0];
 		} elsif ($channels[ $pcm[0] ] >= $channels[ $ac3[0] ]) {
 			$mixdown = $pcm[0];
+		} elsif ($channels[ $pcm[0] ] >= $channels[ $ac3[0] ]) {
+			$mixdown = $pcm[0];
 		}
-	} elsif (defined($aac) && $aac > 0) {
-		$stereo = $aac;
 	} elsif (defined($mpg) && $mpg > 0) {
 		$stereo = $mpg;
 	} elsif (defined($oat) && $oat > 0) {
