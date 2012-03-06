@@ -7,7 +7,7 @@ use IPC::Open3;
 use File::Basename;
 
 # Parameters
-my @video_params    = ('--markers', '--large-file', '--optimize', '--encoder', 'x264', '--detelecine', '--decomb', '--loose-anamorphic', '--modulus', '16', '--x264opts', 'b-adapt=2:rc-lookahead=50');
+my @video_params    = ('--markers', '--large-file', '--optimize', '--encoder', 'x264', '--detelecine', '--decomb', '--loose-anamorphic', '--modulus', '16', '--encopts', 'b-adapt=2:rc-lookahead=50', '--audio-copy-mask', 'dtshd,dts,ac3,aac', '--audio-fallback', 'ca_aac', '--mixdown', 'dpl2', '--ab', '192');
 my $FORMAT          = 'mp4';
 my $QUALITY         = 20;
 my $HD_QUALITY      = 20;
@@ -15,7 +15,6 @@ my $HD_WIDTH        = 1350;
 my $MIN_VIDEO_WIDTH = 100;
 my $MAX_CROP_DIFF   = .1;
 my $MAX_DURA_DIFF   = 5;
-my $HAVE_DTS        = 0;
 my $HB_EXEC         = $ENV{'HOME'} . '/bin/video/HandBrakeCLI';
 my $DEBUG           = 0;
 
@@ -132,16 +131,10 @@ foreach my $title (keys(%titles)) {
 		$scan->{'crop'} = \@crop;
 	}
 
-	# Require the MKV format whenever we have DTS audio
-	my $title_format = $FORMAT;
-	if ($HAVE_DTS) {
-		$title_format = 'mkv';
-	}
-
 	# Select a file name extension that matches the format
 	my $title_out_file = $out_file;
 	$title_out_file =~ s/\.(?:\w{2,3}|dvdmedia)$//i;
-	if ($title_format eq 'mkv') {
+	if ($FORMAT eq 'mkv') {
 		$title_out_file .= '.mkv';
 	} else {
 		$title_out_file .= '.m4v';
@@ -167,7 +160,7 @@ foreach my $title (keys(%titles)) {
 	push(@args, '--title',   $title);
 	push(@args, '--input',   $in_file);
 	push(@args, '--output',  $title_out_file);
-	push(@args, '--format',  $title_format);
+	push(@args, '--format',  $FORMAT);
 	push(@args, '--quality', $title_quality);
 	push(@args, '--crop',    join(':', @{ $scan->{'crop'} }));
 	push(@args, @video_params);
@@ -224,13 +217,13 @@ sub audioOptions($) {
 	my ($scan) = @_;
 
 	# Type the audio tracks
-	my $oat      = undef();
-	my $mpg      = undef();
 	my @channels = ();
-	my @pcm      = ();
-	my @ac3      = ();
+	my @dts_hd   = ();
 	my @dts      = ();
+	my @ac3      = ();
+	my @pcm      = ();
 	my @aac      = ();
+	my @oat      = ();
 	foreach my $track (@{ $scan->{'audio'} }) {
 		my ($language, $codec, $chans, $iso) = $track->{'description'} =~ /^([^\(]+)\s+\(([^\)]+)\)\s+\((\d+\.\d+\s+ch|Dolby\s+Surround)\)(?:\s+\(([^\)]+)\))?/;
 		if (!defined($chans)) {
@@ -240,59 +233,45 @@ sub audioOptions($) {
 			exit(1);
 			next;
 		}
+		if ($DEBUG) {
+			print STDERR 'Found audio track: codec => ' . $codec . ', channels => ' . $chans . ', language => ' . $language . ', ISO => ' . $iso . "\n";
+		}
+
+		# Decode the channels string to a number
 		if ($chans =~ /(\d+\.\d+)\s+ch/i) {
 			$chans = $1;
 		} elsif ($chans =~ /Dolby\s+Surround/i) {
 			$chans = 3.1;
 		}
-		if ($DEBUG) {
-			print STDERR 'Found audio track: codec => ' . $codec . ', channels => ' . $chans . ', language => ' . $language . ', ISO => ' . $iso . "\n";
-		}
-
-		# Record the number of channels in each track
 		$channels[ $track->{'index'} ] = $chans;
 
-		if ($codec =~ /AC3/i) {
-			if ($language =~ /\b(Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b/i) {
-				if ($DEBUG) {
-					print STDERR 'Skipping AC3 in track ' . $track->{'index'} . ' due to language: ' . $language . "\n";
-				}
-				next;
+		# Skip foreign langugae tracks
+		if ($language =~ /\b(Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b/i) {
+			if ($DEBUG) {
+				print STDERR 'Skipping AC3 in track ' . $track->{'index'} . ' due to language: ' . $language . "\n";
 			}
+			next;
+		}
+
+		# Filter by codec
+		if ($codec =~ /DTS/i) {
+			if ($codec =~ /DTS\-MA/i) {
+				push(@dts_hd, $track->{'index'});
+			} else {
+				push(@dts, $track->{'index'});
+			}
+		} elsif ($codec =~ /AC3/i) {
 			push(@ac3, $track->{'index'});
-			if ($DEBUG) {
-				print STDERR 'Found AC3 in track ' . $track->{'index'} . "\n";
-			}
-		} elsif ($codec =~ /AAC/i) {
-			push(@aac, $track->{'index'});
-			if ($DEBUG) {
-				print STDERR 'Found AAC in track ' . $track->{'index'} . "\n";
-			}
-		} elsif ($codec =~ /MP3/i || $codec =~ /MPEG/i) {
-			$mpg = $track->{'index'};
-			if ($DEBUG) {
-				print STDERR 'Found MPEG/MP3 in track ' . $track->{'index'} . "\n";
-			}
 		} elsif ($codec =~ /PCM_[SF]\d+/i) {
 			push(@pcm, $track->{'index'});
+		} elsif ($codec =~ /AAC/i) {
+			push(@aac, $track->{'index'});
+		} else {
+			push(@oat, $track->{'index'});
 			if ($DEBUG) {
-				print STDERR 'Found PCM in track ' . $track->{'index'} . "\n";
-			}
-		} elsif ($codec =~ /DTS/i) {
-			if ($codec =~ /DTS\-MA/i) {
-				if ($DEBUG) {
-					print STDERR 'Skipping DTS-MA in track ' . $track->{'index'} . " due to poor DTS-MA support in HandBrake\n";
+				if (!($codec =~ /MP3/i || $codec =~ /MPEG/i)) {
+					print STDERR 'Found unknown audio (' . $track->{'description'} . ') in track ' . $track->{'index'} . "\n";
 				}
-				next;
-			}
-			push(@dts, $track->{'index'});
-			if ($DEBUG) {
-				print STDERR 'Found DTS in track ' . $track->{'index'} . "\n";
-			}
-		} elsif ($codec =~ /MP2/i) {
-			$oat = $track->{'index'};
-			if ($DEBUG) {
-				print STDERR 'Found other audio (' . $track->{'description'} . ') in track ' . $track->{'index'} . "\n";
 			}
 		}
 	}
@@ -301,12 +280,11 @@ sub audioOptions($) {
 	# But so far I've had good luck just taking the first track with the best codec
 
 	# Pick a stereo/mixdown plan based on the available track types
-	my $stereo  = undef();
 	my $mixdown = undef();
-	if (scalar(@dts) > 0) {
+	if (scalar(@dts_hd) > 0) {
+		$mixdown = $dts_hd[0];
+	} elsif (scalar(@dts) > 0) {
 		$mixdown = $dts[0];
-	} elsif (scalar(@aac) > 0) {
-		$mixdown = $aac[0];
 	} elsif (scalar(@ac3) > 0 || scalar(@pcm) > 0) {
 		if (scalar(@pcm) < 1) {
 			$mixdown = $ac3[0];
@@ -317,73 +295,47 @@ sub audioOptions($) {
 		} elsif ($channels[ $pcm[0] ] >= $channels[ $ac3[0] ]) {
 			$mixdown = $pcm[0];
 		}
-	} elsif (defined($mpg) && $mpg > 0) {
-		$stereo = $mpg;
-	} elsif (defined($oat) && $oat > 0) {
-		$stereo = $oat;
+	} elsif (scalar(@aac)) {
+		$mixdown = $aac[0];
+	} elsif (scalar(@oat)) {
+		$mixdown = $oat[0];
 	}
 
 	# Sanity check
-	if (!(defined($mixdown) && $mixdown > 0) && !(defined($stereo) && $stereo > 0)) {
+	if (!defined($mixdown) || $mixdown < 1) {
 		print STDERR basename($0) . ": No usable audio tracks in title\n";
-		return ();
+		return;
 	}
 
-	# Stereo/mixdown track first
+	# Mixdown track first
 	my @audio_tracks = ();
 	if (defined($mixdown) && $mixdown > 0) {
 		if ($DEBUG) {
-			print STDERR 'Mixing down track (track #' . $mixdown . ") to stereo\n";
+			print STDERR 'Using track ' . $mixdown . " as default AAC audio\n";
+			if ($channels[$mixdown] > 2) {
+				print STDERR "\tMixing down with Dolby Pro Logic II encoding\n";
+			}
 		}
 		my %track = ('index' => $mixdown, 'encoder' => 'ca_aac');
 		push(@audio_tracks, \%track);
-	} elsif (defined($stereo) && $stereo > 0) {
-		if ($DEBUG) {
-			print STDERR 'Using existing stereo track: ' . $stereo . "\n";
-		}
-		my %track = ('index' => $stereo, 'encoder' => 'ca_aac');
-		push(@audio_tracks, \%track);
 	}
 
-	# Always keep DTS if we found it
-	$HAVE_DTS = 0;
-	if (scalar(@dts) > 0) {
-		$HAVE_DTS = 1;
-		foreach my $dts_track (@dts) {
-			if ($DEBUG) {
-				print STDERR 'Keeping DTS passthru track: ' . $dts_track . "\n";
+	# Passthru DTS-MA, DTS, AC3, and AAC
+	# Keep other audio tracks, but recode to AAC (using Handbrake's audio-copy-mask/audio-fallback feature)
+	foreach my $codec_set (\@dts_hd, \@dts, \@ac3, \@aac, \@pcm, \@oat) {
+		foreach my $audio_track (@{$codec_set}) {
+			if ($mixdown == $audio_track && $channels[$mixdown] <= 2) {
+				if ($DEBUG) {
+					print STDERR 'Skipping AAC recode of track ' . $audio_track . ' since it is already used as the default track and contains only ' . $channels[$audio_track] . " channels\n";
+				}
+				next;
 			}
-			my %track = ('index' => $dts_track, 'encoder' => 'copy:dts');
+			if ($DEBUG) {
+				print STDERR 'Keeping audio track: ' . $audio_track . "\n";
+			}
+			my %track = ('index' => $audio_track, 'encoder' => 'copy');
 			push(@audio_tracks, \%track);
 		}
-	}
-
-	# Always keep AAC if we found it (and liked it)
-	# Passthru would be great, but HandBrake does not do AAC passthru
-	foreach my $aac_track (@aac) {
-		if ($DEBUG) {
-			print STDERR 'Keeping AAC track as CoreAudio AAC: ' . $aac_track . "\n";
-		}
-		my %track = ('index' => $aac_track, 'encoder' => 'ca_aac');
-		push(@audio_tracks, \%track);
-	}
-
-	# Always keep PCM if we found it (but recode to AAC)
-	foreach my $pcm_track (@pcm) {
-		if ($DEBUG) {
-			print STDERR 'Keeping PCM track as AAC: ' . $pcm_track . "\n";
-		}
-		my %track = ('index' => $pcm_track, 'encoder' => 'ca_aac');
-		push(@audio_tracks, \%track);
-	}
-
-	# Always keep AC3 if we found it (and liked it)
-	foreach my $ac3_track (@ac3) {
-		if ($DEBUG) {
-			print STDERR 'Keeping AC3 passthru track: ' . $ac3_track . "\n";
-		}
-		my %track = ('index' => $ac3_track, 'encoder' => 'copy:ac3');
-		push(@audio_tracks, \%track);
 	}
 
 	# Consolidate from the hashes
