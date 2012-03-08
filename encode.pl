@@ -15,6 +15,7 @@ my $HD_WIDTH        = 1350;
 my $MIN_VIDEO_WIDTH = 100;
 my $MAX_CROP_DIFF   = .1;
 my $MAX_DURA_DIFF   = 5;
+my @CODEC_ORDER     = ('DTS-HD', 'DTS', 'PCM', 'AC3', 'AAC', 'OTHER');
 my $HB_EXEC         = $ENV{'HOME'} . '/bin/video/HandBrakeCLI';
 my $DEBUG           = 0;
 
@@ -217,88 +218,79 @@ sub audioOptions($) {
 	my ($scan) = @_;
 
 	# Type the audio tracks
-	my @channels = ();
-	my @dts_hd   = ();
-	my @dts      = ();
-	my @ac3      = ();
-	my @pcm      = ();
-	my @aac      = ();
-	my @oat      = ();
+	my %tracks = ();
 	foreach my $track (@{ $scan->{'audio'} }) {
-		my ($language, $codec, $chans, $iso) = $track->{'description'} =~ /^([^\(]+)\s+\(([^\)]+)\)\s+\((\d+\.\d+\s+ch|Dolby\s+Surround)\)(?:\s+\(([^\)]+)\))?/;
-		if (!defined($chans)) {
+		my ($language, $codec, $note, $channels, $iso) = $track->{'description'} =~ /^([^\(]+)\s+\(([^\)]+)\)\s+(?:\(([^\)]*Commentary[^\)]*)\)\s+)?\((\d+\.\d+\s+ch|Dolby\s+Surround)\)(?:\s+\(iso(\d+\-\d+)\:\s+\w\w\w\))?/;
+		if (!defined($channels)) {
 			print STDERR 'Could not parse audio description: ' . $track->{'description'} . "\n";
 
 			# Temporarily exit on parsing errors -- at least until we're sure about this new parser
+			#next;
 			exit(1);
-			next;
-		}
-		if ($DEBUG) {
-			print STDERR 'Found audio track: codec => ' . $codec . ', channels => ' . $chans . ', language => ' . $language . ', ISO => ' . $iso . "\n";
 		}
 
 		# Decode the channels string to a number
-		if ($chans =~ /(\d+\.\d+)\s+ch/i) {
-			$chans = $1;
-		} elsif ($chans =~ /Dolby\s+Surround/i) {
-			$chans = 3.1;
-		}
-		$channels[ $track->{'index'} ] = $chans;
-
-		# Skip foreign langugae tracks
-		if ($language =~ /\b(Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b/i) {
-			if ($DEBUG) {
-				print STDERR 'Skipping AC3 in track ' . $track->{'index'} . ' due to language: ' . $language . "\n";
-			}
-			next;
+		if ($channels =~ /(\d+\.\d+)\s+ch/i) {
+			$channels = $1;
+		} elsif ($channels =~ /Dolby\s+Surround/i) {
+			$channels = 3.1;
 		}
 
-		# Filter by codec
-		if ($codec =~ /DTS/i) {
-			if ($codec =~ /DTS\-MA/i) {
-				push(@dts_hd, $track->{'index'});
-			} else {
-				push(@dts, $track->{'index'});
-			}
-		} elsif ($codec =~ /AC3/i) {
-			push(@ac3, $track->{'index'});
-		} elsif ($codec =~ /PCM_[SF]\d+/i) {
-			push(@pcm, $track->{'index'});
-		} elsif ($codec =~ /AAC/i) {
-			push(@aac, $track->{'index'});
-		} else {
-			push(@oat, $track->{'index'});
-			if ($DEBUG) {
+		# Standardize the codec
+		foreach my $code (@CODEC_ORDER) {
+			my $metacode = quotemeta($code);
+			if ($codec =~ /${metacode}/i) {
+				$codec = $code;
+				last;
+			} elsif ($code eq 'OTHER') {
 				if (!($codec =~ /MP3/i || $codec =~ /MPEG/i)) {
 					print STDERR 'Found unknown audio (' . $track->{'description'} . ') in track ' . $track->{'index'} . "\n";
 				}
+				$codec = $code;
 			}
+		}
+
+		# Push all parsed data into the array
+		my %data = ('language' => $language, 'codec' => $codec, 'channels' => $channels, 'iso' => $iso, 'note' => $note);
+		$tracks{ $track->{'index'} } = \%data;
+
+		# Print what we found
+		if ($DEBUG) {
+			print STDERR 'Found audio track: ';
+			my $first = 1;
+			foreach my $key (keys(%data)) {
+				if ($data{$key}) {
+					if ($first) {
+						$first = 0;
+					} else {
+						print STDERR ', ';
+					}
+					print STDERR $key . ' => ' . $data{$key};
+				}
+			}
+			print STDERR "\n";
 		}
 	}
 
-	# We should sort the different codecs by number of channels
-	# But so far I've had good luck just taking the first track with the best codec
-
-	# Pick a stereo/mixdown plan based on the available track types
-	my $mixdown = undef();
-	if (scalar(@dts_hd) > 0) {
-		$mixdown = $dts_hd[0];
-	} elsif (scalar(@dts) > 0) {
-		$mixdown = $dts[0];
-	} elsif (scalar(@ac3) > 0 || scalar(@pcm) > 0) {
-		if (scalar(@pcm) < 1) {
-			$mixdown = $ac3[0];
-		} elsif (scalar(@ac3) < 1) {
-			$mixdown = $pcm[0];
-		} elsif ($channels[ $pcm[0] ] >= $channels[ $ac3[0] ]) {
-			$mixdown = $pcm[0];
-		} elsif ($channels[ $pcm[0] ] >= $channels[ $ac3[0] ]) {
-			$mixdown = $pcm[0];
+	# Find the track with the most channels for each codec, and the highest number of channels among all types of tracks
+	# Then choose the most desired codec among the set of codecs that contain the highest number of channels
+	# This chooses the track with the most channels for the mixdown, and resolves ties using CODEC_ORDER
+	my $mixdown      = undef();
+	my %bestByCodec  = ();
+	my $bestCodec    = undef();
+	my $mostChannels = 0;
+	foreach my $codec (@CODEC_ORDER) {
+		$bestByCodec{$codec} = findBestAudioTrack(\%tracks, $codec);
+		if (defined($bestByCodec{$codec}) && (!defined($bestCodec) || $mostChannels < $tracks{ $bestByCodec{$codec} }->{'channels'})) {
+			$bestCodec    = $codec;
+			$mostChannels = $tracks{ $bestByCodec{$codec} }->{'channels'};
 		}
-	} elsif (scalar(@aac)) {
-		$mixdown = $aac[0];
-	} elsif (scalar(@oat)) {
-		$mixdown = $oat[0];
+	}
+	foreach my $codec (@CODEC_ORDER) {
+		if (defined($bestByCodec{$codec}) && $tracks{ $bestByCodec{$codec} }->{'channels'} == $mostChannels) {
+			$mixdown = $bestByCodec{$codec};
+			last;
+		}
 	}
 
 	# Sanity check
@@ -312,7 +304,7 @@ sub audioOptions($) {
 	if (defined($mixdown) && $mixdown > 0) {
 		if ($DEBUG) {
 			print STDERR 'Using track ' . $mixdown . " as default AAC audio\n";
-			if ($channels[$mixdown] > 2) {
+			if ($tracks{$mixdown}->{'channels'} > 2) {
 				print STDERR "\tMixing down with Dolby Pro Logic II encoding\n";
 			}
 		}
@@ -322,32 +314,28 @@ sub audioOptions($) {
 
 	# Passthru DTS-MA, DTS, AC3, and AAC
 	# Keep other audio tracks, but recode to AAC (using Handbrake's audio-copy-mask/audio-fallback feature)
-	foreach my $codec_set (\@dts_hd, \@dts, \@ac3, \@aac, \@pcm, \@oat) {
-		foreach my $audio_track (@{$codec_set}) {
-			if ($mixdown == $audio_track && $channels[$mixdown] <= 2) {
-				if ($DEBUG) {
-					print STDERR 'Skipping AAC recode of track ' . $audio_track . ' since it is already used as the default track and contains only ' . $channels[$audio_track] . " channels\n";
-				}
-				next;
-			}
+	foreach my $index (keys(%tracks)) {
+		if ($mixdown == $index && $tracks{$index}->{'codec'} eq 'OTHER' && $tracks{$index}->{'channels'} <= 2) {
 			if ($DEBUG) {
-				print STDERR 'Keeping audio track: ' . $audio_track . "\n";
+				print STDERR 'Skipping recode of track ' . $index . ' since it is already used as the default track and contains only ' . $tracks{$index}->{'channels'} . " channels\n";
 			}
-			my %track = ('index' => $audio_track, 'encoder' => 'copy');
+			next;
+		} else {
+			my %track = ('index' => $index, 'encoder' => 'copy');
 			push(@audio_tracks, \%track);
 		}
 	}
 
 	# Consolidate from the hashes
-	my @tracks   = ();
-	my @encoders = ();
+	my @output_tracks   = ();
+	my @output_encoders = ();
 	foreach my $track (@audio_tracks) {
-		push(@tracks,   $track->{'index'});
-		push(@encoders, $track->{'encoder'});
+		push(@output_tracks,   $track->{'index'});
+		push(@output_encoders, $track->{'encoder'});
 	}
 
 	# Send back the argument strings
-	return ('--audio', join(',', @tracks), '--aencoder', join(',', @encoders));
+	return ('--audio', join(',', @output_tracks), '--aencoder', join(',', @output_encoders));
 }
 
 sub scan($) {
@@ -474,4 +462,34 @@ sub scan($) {
 
 	# Return
 	return %titles;
+}
+
+sub findBestAudioTrack($$) {
+	my ($tracks, $codec) = @_;
+	my $best         = undef();
+	my $bestChannels = 0;
+
+	for my $index (keys(%{$tracks})) {
+		my $track = $tracks->{$index};
+
+		# Skip tracks not in the specified codec
+		if ($track->{'codec'} ne $codec) {
+			next;
+		}
+
+		# Skip foreign langugae tracks
+		if ($track->{'language'} =~ /\b(Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b/i) {
+			if ($DEBUG) {
+				print STDERR 'Skipping audio track ' . $index . ' due to language: ' . $track->{'language'} . "\n";
+			}
+			next;
+		}
+
+		if (!defined($best) || $track->{'channels'} > $bestChannels) {
+			$best         = $index;
+			$bestChannels = $track->{'channels'};
+		}
+	}
+
+	return $best;
 }
