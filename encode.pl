@@ -7,17 +7,18 @@ use IPC::Open3;
 use File::Basename;
 
 # Parameters
-my @video_params    = ('--markers', '--large-file', '--optimize', '--encoder', 'x264', '--detelecine', '--decomb', '--loose-anamorphic', '--modulus', '16', '--encopts', 'b-adapt=2:rc-lookahead=50', '--audio-copy-mask', 'dtshd,dts,ac3,aac', '--audio-fallback', 'ca_aac', '--mixdown', 'dpl2', '--ab', '192');
-my $FORMAT          = 'mp4';
-my $QUALITY         = 20;
-my $HD_QUALITY      = 20;
-my $HD_WIDTH        = 1350;
-my $MIN_VIDEO_WIDTH = 100;
-my $MAX_CROP_DIFF   = .1;
-my $MAX_DURA_DIFF   = 5;
-my @CODEC_ORDER     = ('DTS-HD', 'DTS', 'PCM', 'AC3', 'AAC', 'OTHER');
-my $HB_EXEC         = $ENV{'HOME'} . '/bin/video/HandBrakeCLI';
-my $DEBUG           = 0;
+my @video_params       = ('--markers', '--large-file', '--optimize', '--encoder', 'x264', '--detelecine', '--decomb', '--loose-anamorphic', '--modulus', '16', '--encopts', 'b-adapt=2:rc-lookahead=50', '--audio-copy-mask', 'dtshd,dts,ac3,aac', '--audio-fallback', 'ca_aac', '--mixdown', 'dpl2', '--ab', '192');
+my $FORMAT             = 'mp4';
+my $QUALITY            = 20;
+my $HD_QUALITY         = 20;
+my $HD_WIDTH           = 1350;
+my $MIN_VIDEO_WIDTH    = 100;
+my $MAX_CROP_DIFF      = .1;
+my $MAX_DURA_DIFF      = 5;
+my @CODEC_ORDER        = ('DTS-HD', 'DTS', 'PCM', 'AC3', 'AAC', 'OTHER');
+my $EXCLUDE_LANG_REGEX = '\b(?:Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b';
+my $HB_EXEC            = $ENV{'HOME'} . '/bin/video/HandBrakeCLI';
+my $DEBUG              = 0;
 
 # Runtime debug mode
 if (defined($ENV{'DEBUG'}) && $ENV{'DEBUG'}) {
@@ -320,6 +321,11 @@ sub audioOptions($) {
 				print STDERR 'Skipping recode of track ' . $index . ' since it is already used as the default track and contains only ' . $tracks{$index}->{'channels'} . " channels\n";
 			}
 			next;
+		} elsif (!validLanguage($tracks{$index}->{'language'})) {
+			if ($DEBUG) {
+				print STDERR 'Skipping track ' . $index . ' due to language: ' . $tracks{$index}->{'language'} . "\n";
+			}
+			next;
 		} else {
 			my %track = ('index' => $index, 'encoder' => 'copy');
 			push(@audio_tracks, \%track);
@@ -466,8 +472,8 @@ sub scan($) {
 
 sub findBestAudioTrack($$) {
 	my ($tracks, $codec) = @_;
-	my $best         = undef();
-	my $bestChannels = 0;
+	my $best     = undef();
+	my $channels = 0;
 
 	for my $index (keys(%{$tracks})) {
 		my $track = $tracks->{$index};
@@ -477,19 +483,27 @@ sub findBestAudioTrack($$) {
 			next;
 		}
 
-		# Skip foreign langugae tracks
-		if ($track->{'language'} =~ /\b(Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b/i) {
-			if ($DEBUG) {
-				print STDERR 'Skipping audio track ' . $index . ' due to language: ' . $track->{'language'} . "\n";
-			}
+		# Skip foreign language tracks
+		if (!validLanguage($track->{'language'})) {
 			next;
 		}
 
-		if (!defined($best) || $track->{'channels'} > $bestChannels) {
-			$best         = $index;
-			$bestChannels = $track->{'channels'};
+		# Find the track with the most channels (Ófirst wins)
+		if (!defined($best) || $track->{'channels'} > $channels) {
+			$best     = $index;
+			$channels = $track->{'channels'};
 		}
 	}
 
 	return $best;
+}
+
+sub validLanguage($) {
+	my ($lang) = @_;
+
+	if ($EXCLUDE_LANG_REGEX && $lang =~ /${EXCLUDE_LANG_REGEX}/i) {
+		return 0;
+	}
+
+	return 1;
 }
