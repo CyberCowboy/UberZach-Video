@@ -7,18 +7,20 @@ use IPC::Open3;
 use File::Basename;
 
 # Parameters
-my @video_params       = ('--markers', '--large-file', '--optimize', '--encoder', 'x264', '--detelecine', '--decomb', '--loose-anamorphic', '--modulus', '16', '--encopts', 'b-adapt=2:rc-lookahead=50', '--audio-copy-mask', 'dtshd,dts,ac3,aac', '--audio-fallback', 'ca_aac', '--mixdown', 'dpl2', '--ab', '192');
-my $FORMAT             = 'mp4';
-my $QUALITY            = 20;
-my $HD_QUALITY         = 20;
-my $HD_WIDTH           = 1350;
-my $MIN_VIDEO_WIDTH    = 100;
-my $MAX_CROP_DIFF      = .1;
-my $MAX_DURA_DIFF      = 5;
-my @CODEC_ORDER        = ('DTS-HD', 'DTS', 'PCM', 'AC3', 'AAC', 'OTHER');
-my $EXCLUDE_LANG_REGEX = '\b(?:Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b';
-my $HB_EXEC            = $ENV{'HOME'} . '/bin/video/HandBrakeCLI';
-my $DEBUG              = 0;
+my @video_params        = ('--markers', '--large-file', '--optimize', '--encoder', 'x264', '--detelecine', '--decomb', '--loose-anamorphic', '--modulus', '16', '--encopts', 'b-adapt=2:rc-lookahead=50', '--audio-copy-mask', 'dtshd,dts,ac3,aac', '--audio-fallback', 'ca_aac', '--mixdown', 'dpl2', '--ab', '192');
+my $FORMAT              = 'mp4';
+my $QUALITY             = 20;
+my $HD_QUALITY          = 20;
+my $HD_WIDTH            = 1350;
+my $MIN_VIDEO_WIDTH     = 100;
+my $MAX_CROP_DIFF       = .1;
+my $MAX_DURA_DIFF       = 5;
+my @CODEC_ORDER         = ('DTS-HD', 'DTS', 'PCM', 'AC3', 'AAC', 'OTHER');
+my $AUDIO_EXCLUDE_REGEX = '\b(?:Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b';
+my $SUB_EXCLUDE_REGEX   = '\b(?:English|Unknown|Closed\s+Captions)\b';
+my %LANG_INCLUDE_ISO    = ('639-1' => 1);
+my $HB_EXEC             = $ENV{'HOME'} . '/bin/video/HandBrakeCLI';
+my $DEBUG               = 0;
 
 # Runtime debug mode
 if (defined($ENV{'DEBUG'}) && $ENV{'DEBUG'}) {
@@ -197,14 +199,42 @@ exit(0);
 sub subOptions($) {
 	my ($scan) = @_;
 
-	# Find English subtitles
-	my @keep = ();
+	my %tracks = ();
 	foreach my $track (@{ $scan->{'subtitle'} }) {
-		if (my ($lang) = $track->{'description'} =~ /\b(English|Unknown|Closed\s+Captions)\b/i) {
-			push(@keep, $track->{'index'});
-			if ($DEBUG) {
-				print STDERR 'Found ' . $lang . ' subtitle in track ' . $track->{'index'} . "\n";
-			}
+		my ($language, $iso, $text, $type) = $track->{'description'} =~ /^([^\(]+)\s+\(iso(\d+\-\d+)\:\s+\w\w\w\)\s+\((Text|Bitmap)\)\((CC|VOBSUB|PGS)\)/i;
+		if (!defined($iso)) {
+			print STDERR 'Could not parse subtitle description: ' . $track->{'description'} . "\n";
+
+			# Temporarily exit on parsing errors -- at least until we're sure about this new parser
+			#next;
+			exit(1);
+		}
+
+		# Map text/bitmap into a boolean
+		if ($text =~ /TEXT/i) {
+			$text = 1;
+		} else {
+			$text = 0;
+		}
+
+		# Push all parsed data into an array
+		my %data = ('language' => $language, 'iso' => $iso, 'text' => $text, 'type' => $type);
+		$tracks{ $track->{'index'} } = \%data;
+
+		# Print what we found
+		if ($DEBUG) {
+			print STDERR 'Found subtitle track: ';
+			printHash(\%data);
+		}
+	}
+
+	# Keep subtitles in our prefered langauges, and all text-based subtitles (they're small)
+	my @keep = ();
+	foreach my $index (keys(%tracks)) {
+		if (isValidSubLanguage($tracks{$index}->{'language'}, $tracks{$index}->{'iso'})) {
+			push(@keep, $index);
+		} elsif ($tracks{$index}->{'text'}) {
+			push(@keep, $index);
 		}
 	}
 
@@ -258,18 +288,7 @@ sub audioOptions($) {
 		# Print what we found
 		if ($DEBUG) {
 			print STDERR 'Found audio track: ';
-			my $first = 1;
-			foreach my $key (keys(%data)) {
-				if ($data{$key}) {
-					if ($first) {
-						$first = 0;
-					} else {
-						print STDERR ', ';
-					}
-					print STDERR $key . ' => ' . $data{$key};
-				}
-			}
-			print STDERR "\n";
+			printHash(\%data);
 		}
 	}
 
@@ -321,7 +340,7 @@ sub audioOptions($) {
 				print STDERR 'Skipping recode of track ' . $index . ' since it is already used as the default track and contains only ' . $tracks{$index}->{'channels'} . " channels\n";
 			}
 			next;
-		} elsif (!validLanguage($tracks{$index}->{'language'})) {
+		} elsif (!isValidAudioLanguage($tracks{$index}->{'language'}, $tracks{$index}->{'iso'})) {
 			if ($DEBUG) {
 				print STDERR 'Skipping track ' . $index . ' due to language: ' . $tracks{$index}->{'language'} . "\n";
 			}
@@ -484,7 +503,7 @@ sub findBestAudioTrack($$) {
 		}
 
 		# Skip foreign language tracks
-		if (!validLanguage($track->{'language'})) {
+		if (!isValidAudioLanguage($track->{'language'}, $track->{'iso'})) {
 			next;
 		}
 
@@ -498,12 +517,43 @@ sub findBestAudioTrack($$) {
 	return $best;
 }
 
-sub validLanguage($) {
-	my ($lang) = @_;
+sub isValidSubLanguage($) {
+	my ($lang, $iso) = @_;
 
-	if ($EXCLUDE_LANG_REGEX && $lang =~ /${EXCLUDE_LANG_REGEX}/i) {
+	if (scalar(keys(%LANG_INCLUDE_ISO)) && $LANG_INCLUDE_ISO{$iso}) {
+		return 1;
+	} elsif ($SUB_EXCLUDE_REGEX && $lang =~ /${SUB_EXCLUDE_REGEX}/i) {
 		return 0;
 	}
 
 	return 1;
+}
+
+sub isValidAudioLanguage($) {
+	my ($lang, $iso) = @_;
+
+	if (scalar(keys(%LANG_INCLUDE_ISO)) && $LANG_INCLUDE_ISO{$iso}) {
+		return 1;
+	} elsif ($AUDIO_EXCLUDE_REGEX && $lang =~ /${AUDIO_EXCLUDE_REGEX}/i) {
+		return 0;
+	}
+
+	return 1;
+}
+
+sub printHash($) {
+	my ($data) = @_;
+
+	my $first = 1;
+	foreach my $key (keys(%{$data})) {
+		if (defined($data->{$key})) {
+			if ($first) {
+				$first = 0;
+			} else {
+				print STDERR ', ';
+			}
+			print STDERR $key . ' => ' . $data->{$key};
+		}
+	}
+	print STDERR "\n";
 }
