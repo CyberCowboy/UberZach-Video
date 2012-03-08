@@ -17,7 +17,7 @@ my $MAX_CROP_DIFF       = .1;
 my $MAX_DURA_DIFF       = 5;
 my @CODEC_ORDER         = ('DTS-HD', 'DTS', 'PCM', 'AC3', 'AAC', 'OTHER');
 my $AUDIO_EXCLUDE_REGEX = '\b(?:Chinese|Espanol|Francais|Japanese|Korean|Portugues|Thai)\b';
-my $SUB_EXCLUDE_REGEX   = '\b(?:English|Unknown|Closed\s+Captions)\b';
+my $SUB_INCLUDE_REGEX   = '\b(?:English|Unknown|Closed\s+Captions)\b';
 my %LANG_INCLUDE_ISO    = ('639-1' => 1);
 my $HB_EXEC             = $ENV{'HOME'} . '/bin/video/HandBrakeCLI';
 my $DEBUG               = 0;
@@ -235,6 +235,10 @@ sub subOptions($) {
 			push(@keep, $index);
 		} elsif ($tracks{$index}->{'text'}) {
 			push(@keep, $index);
+		} else {
+			if ($DEBUG) {
+				print STDERR 'Skipping subtitle ' . $index . ' due to language: ' . $tracks{$index}->{'language'} . "\n";
+			}
 		}
 	}
 
@@ -522,11 +526,11 @@ sub isValidSubLanguage($) {
 
 	if (scalar(keys(%LANG_INCLUDE_ISO)) && $LANG_INCLUDE_ISO{$iso}) {
 		return 1;
-	} elsif ($SUB_EXCLUDE_REGEX && $lang =~ /${SUB_EXCLUDE_REGEX}/i) {
-		return 0;
+	} elsif ($SUB_INCLUDE_REGEX && $lang =~ /${SUB_INCLUDE_REGEX}/i) {
+		return 1;
 	}
 
-	return 1;
+	return 0;
 }
 
 sub isValidAudioLanguage($) {
