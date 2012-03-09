@@ -150,13 +150,9 @@ foreach my $title (keys(%titles)) {
 		$title_out_file =~ s/(\.\w{2,3})$/\-${title_text}${1}/;
 	}
 
-	# Sanity check
+	# Output file
 	if (uc($title_out_file) eq uc($in_file)) {
 		$title_out_file =~ s/(\.\w{2,3})$/-recode${1}/;
-	}
-	if (-e $title_out_file) {
-		print STDERR basename($0) . ': Output file exists: ' . $title_out_file . ". Skipping...\n";
-		next;
 	}
 
 	# Build the arugment list
@@ -170,11 +166,19 @@ foreach my $title (keys(%titles)) {
 	push(@args, @video_params);
 	push(@args, @audio);
 	push(@args, @subs);
+	
+	# What will we run
+	if ($DEBUG) {
+		print STDERR "\n" . join(' ', @args) . "\n\n";
+	}
+
+	# Sanity check
+	if (-e $title_out_file) {
+		print STDERR basename($0) . ': Output file exists: ' . $title_out_file . ". Skipping...\n";
+		next;
+	}
 
 	# Run it
-	if ($DEBUG) {
-		print STDERR join(' ', @args) . "\n";
-	}
 	my $child_out = '';
 	my $child_in  = '';
 	my $pid       = open3($child_in, $child_out, $child_out, @args);
@@ -376,11 +380,9 @@ sub scan($) {
 
 	# Loop through the output
 	my $scan;
-	my %titles       = ();
-	my $inTitle      = 0;
-	my $zone         = '';
-	my $dca_stream   = -1;
-	my %dca_lossless = ();
+	my %titles  = ();
+	my $inTitle = 0;
+	my $zone    = '';
 	while (<$child_out>) {
 
 		if (!$inTitle && m/scan thread found (\d+) valid title/i) {
@@ -390,18 +392,6 @@ sub scan($) {
 		} elsif (m/^\s+Stream \#0\.(\d+)\(\w+\)\:\s+(.*)/) {
 			my $stream = $1;
 			my $desc   = $2;
-			$dca_stream = -1;
-			if ($desc =~ /Audio\:\s+dca/) {
-				$dca_stream = $stream;
-			}
-		} elsif ($dca_stream >= 0 && m/^\s+title\s*\:\s+(.*)/) {
-			if ($1 =~ /Lossless/i) {
-				$dca_lossless{$dca_stream} = 1;
-				if ($DEBUG) {
-					print STDERR 'Found DTS Lossless audio in stream: ' . $dca_stream . "\n";
-				}
-			}
-			$dca_stream = -1;
 		} elsif (m/^\s*\+\s+title\s+(\d+)\:/) {
 
 			# Save the current title (if any)
@@ -456,9 +446,6 @@ sub scan($) {
 				$zone = 'audio';
 			} elsif ($zone eq 'audio' && /^\s*\+\s+(\d+)\,\s+(.*)/) {
 				my %track = ('index' => $1, 'description' => $2);
-				if ($dca_lossless{ $track{'index'} }) {
-					$track{'description'} =~ s/\(DTS\)/\(DTS-MA\)/;
-				}
 				push(@{ $scan->{'audio'} }, \%track);
 				if ($DEBUG) {
 					print STDERR 'Audio Track #' . $track{'index'} . ': ' . $track{'description'} . "\n";
