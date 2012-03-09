@@ -9,6 +9,7 @@ use File::Temp qw/ :mktemp /;
 use File::Basename;
 use FindBin qw($Bin);
 use lib $Bin;
+use Run;
 use Fetch;
 
 # Prototypes
