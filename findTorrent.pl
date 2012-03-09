@@ -10,6 +10,8 @@ my $MORE_NUMBER_FORMATS = 0;
 use JSON;
 use File::Temp;
 use File::Basename;
+use FindBin qw($Bin);
+use lib $Bin;
 use Fetch;
 
 # Prototypes
