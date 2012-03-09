@@ -7,8 +7,7 @@ use JSON;
 use Date::Parse;
 use File::Temp qw/ :mktemp /;
 use File::Basename;
-use lib '/usr/local/spidering/bots/utils';
-use StdBot;
+use Fetch;
 
 # Prototypes
 sub session($);
@@ -198,7 +197,10 @@ sub fetch($) {
 	$fetch->fetch('nocheck' => 1);
 	if ($fetch->status_code() != 200) {
 		&session($fetch);
-		StdBot::fetchCheck($fetch, 1);
+		$fetch->fetch();
+		if ($fetch->status_code() != 200) {
+			die('Unable to fetch: ' . $fetch->status_code() . "\n");
+		}
 	}
 }
 

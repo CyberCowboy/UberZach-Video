@@ -10,7 +10,6 @@ my $MORE_NUMBER_FORMATS = 0;
 use JSON;
 use File::Temp;
 use File::Basename;
-use lib '/usr/local/spidering/bots/utils';
 use Fetch;
 
 # Prototypes
