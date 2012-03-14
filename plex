@@ -28,8 +28,11 @@ elif [ "${CMD}" == "BUTTON" ]; then
 elif [ "${CMD}" == "PLAYING" ]; then
 	URL="${URL}?command=GetCurrentlyPlaying"
 	OUTPUT=1
-elif [ "${CMD}" == "GUI" ]; then
+elif [ "${CMD}" == "RESOLUTION" ]; then
 	URL="${URL}?command=GetGuiDescription"
+	OUTPUT=1
+elif [ "${CMD}" == "GUI" ]; then
+	URL="${URL}?command=GetGuiStatus"
 	OUTPUT=1
 else
 	echo "Unknown command: ${CMD}" 1>&2
