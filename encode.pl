@@ -167,7 +167,6 @@ foreach my $title (keys(%titles)) {
 	push(@args, @audio);
 	push(@args, @subs);
 	
-	# What will we run
 	if ($DEBUG) {
 		print STDERR "\n" . join(' ', @args) . "\n\n";
 	}
