@@ -24,7 +24,7 @@ TEMP_FILE="`mktemp -t plexMonitor.XXXXXXXX`"
 
 # Get into position
 if [ ! -d "${DATA_DIR}" ]; then
-	mkdir "${DATA_DIR}"
+	mkdir -p "${DATA_DIR}"
 fi
 cd "${DATA_DIR}"
 
