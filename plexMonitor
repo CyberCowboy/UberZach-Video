@@ -30,7 +30,7 @@ cd "${DATA_DIR}"
 
 # Compare the current state to the last one
 CHANGED=1
-"${EXEC_DIR}/${CMD}" > "${TEMP_FILE}"
+"${EXEC_DIR}/${CMD}" > "${TEMP_FILE}" 2>/dev/null
 if [ -r "${MODE}" ]; then
 	diff "${TEMP_FILE}" "${MODE}" > /dev/null
 	if [ $? -eq 0 ]; then
