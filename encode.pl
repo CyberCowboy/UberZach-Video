@@ -166,7 +166,7 @@ foreach my $title (keys(%titles)) {
 	push(@args, @video_params);
 	push(@args, @audio);
 	push(@args, @subs);
-	
+
 	if ($DEBUG) {
 		print STDERR "\n" . join(' ', @args) . "\n\n";
 	}
@@ -204,7 +204,7 @@ sub subOptions($) {
 
 	my %tracks = ();
 	foreach my $track (@{ $scan->{'subtitle'} }) {
-		my ($language, $iso, $text, $type) = $track->{'description'} =~ /^([^\(]+)\s+\(iso(\d+\-\d+)\:\s+\w\w\w\)\s+\((Text|Bitmap)\)\((CC|VOBSUB|PGS)\)/i;
+		my ($language, $note, $iso, $text, $type) = $track->{'description'} =~ /^([^\(]+)(?:\s+\(([^\)]+)\))?\s+\(iso(\d+\-\d+)\:\s+\w\w\w\)\s+\((Text|Bitmap)\)\((CC|VOBSUB|PGS)\)/i;
 		if (!defined($iso)) {
 			print STDERR 'Could not parse subtitle description: ' . $track->{'description'} . "\n";
 
@@ -221,7 +221,7 @@ sub subOptions($) {
 		}
 
 		# Push all parsed data into an array
-		my %data = ('language' => $language, 'iso' => $iso, 'text' => $text, 'type' => $type);
+		my %data = ('language' => $language, 'note' => $note, 'iso' => $iso, 'text' => $text, 'type' => $type);
 		$tracks{ $track->{'index'} } = \%data;
 
 		# Print what we found
