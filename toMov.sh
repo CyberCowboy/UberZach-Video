@@ -23,7 +23,7 @@ fi
 if [ -z "${outFile}" ]; then
 	# Use the input file name with a .mov extension
 	outFile="`basename "${inFile}"`"
-	outFile="`echo "${outFile}" | sed 's%\.[A-Za-z0-9]*$%.mov%'`"
+	outFile="`echo "${outFile}" | sed 's%\.[A-Za-z0-9]*$%%'`"
 	outFile="`dirname "${inFile}"`/${outFile}"
 fi
 
@@ -31,8 +31,10 @@ fi
 tmpFile="`mktemp -t toMov`"
 if which catmovie > /dev/null 2>&1; then
 	catmovie -q -self-contained -o "${tmpFile}" "${inFile}" 2>/dev/null
+	outfile="${outfile}.mov"
 elif which mkvmerge > /dev/null 2>&1; then
 	mkvmerge -o "${tmpFile}" "${inFile}"
+	outfile="${outfile}.mkv"
 fi
 
 # Check for errors
