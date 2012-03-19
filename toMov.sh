@@ -27,15 +27,19 @@ if [ -z "${outFile}" ]; then
 	outFile="`dirname "${inFile}"`/${outFile}"
 fi
 
-# Convert to MOV
+# Convert to MOV or MKV
 tmpFile="`mktemp -t toMov`"
-catmovie -q -self-contained -o "${tmpFile}" "${inFile}" 2>/dev/null
+if which catmovie > /dev/null 2>&1; then
+	catmovie -q -self-contained -o "${tmpFile}" "${inFile}" 2>/dev/null
+elif which mkvmerge > /dev/null 2>&1; then
+	mkvmerge -o "${tmpFile}" "${inFile}"
+fi
 
 # Check for errors
 if [ ! -e "${tmpFile}" ] || [ `stat -f '%z' "${tmpFile}"` -lt 1000 ]; then
 	echo "`basename "${0}"`: Error creating output file for input: ${inFile}" 1>&2
 
-	# Try to recode (with Handbrake/ffmpeg) if QuickTime fails
+	# Try to recode (with Handbrake/ffmpeg) if catmovie/mkvmerge fails
 	echo "`basename "${0}"`: Attempting recode instead..." 1>&2
 	~/bin/video/recode "${inFile}"
 	exit "${?}"
