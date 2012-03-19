@@ -29,7 +29,7 @@ fi
 
 # Convert to MOV
 tmpFile="`mktemp -t toMov`"
-catmovie -q -self-contained -o "${tmpFile}" $chaps "${inFile}" 2>/dev/null
+catmovie -q -self-contained -o "${tmpFile}" "${inFile}" 2>/dev/null
 
 # Check for errors
 if [ ! -e "${tmpFile}" ] || [ `stat -f '%z' "${tmpFile}"` -lt 1000 ]; then
