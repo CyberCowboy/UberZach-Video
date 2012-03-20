@@ -30,8 +30,8 @@ fi
 
 # Allow use in daemon mode
 LOOP_DELAY=0
-if [ -n "${DAEMON}" ] && [ $DAEMON -gt 0 ]; then
-	LOOP_DELAY=$DAEMON
+if [ -n "${1}" ] && [ "${1}" -gt 0 ]; then
+	LOOP_DELAY=$1
 fi
 
 # Determine who we are
