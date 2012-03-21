@@ -295,9 +295,6 @@ sub getDest($$$$) {
 				my @lines;
 				my $file = $tvDir . '/' . $showsCan{$show} . '/must_match';
 				if (-e $file) {
-					if ($DEBUG) {
-						print STDERR 'Reading must_match file: ' . $file . "\n";
-					}
 					local ($/, *FH);
 					open(FH, $file)
 					  or die('Unable to read must_match file: ' . $file . "\n");
@@ -395,9 +392,6 @@ sub delTor($) {
 
 sub guessExt($) {
 	my ($file) = @_;
-	if ($DEBUG) {
-		print STDERR 'Guessing extension for: ' . basename($file) . "\n";
-	}
 
 	# Believe most non-avi file extensions without checking
 	# It's mostly "avi" that lies, and the checks are expensive
@@ -408,9 +402,6 @@ sub guessExt($) {
 		$orig_ext = lc($orig_ext);
 		if ($orig_ext eq 'mkv' || $orig_ext eq 'ts') {
 			$ext = $orig_ext;
-			if ($DEBUG) {
-				print STDERR 'Accepting declared file extension: ' . $ext . "\n";
-			}
 		}
 	}
 
@@ -452,9 +443,6 @@ sub guessExt($) {
 		}
 	}
 
-	if ($DEBUG) {
-		print STDERR 'File extension: ' . $ext . "\n";
-	}
 	return $ext;
 }
 
@@ -519,9 +507,6 @@ sub processFile($$) {
 	}
 
 	# Copy with system tools
-	if ($DEBUG) {
-		print STDERR 'Copying file: ' . basename($file) . "\n";
-	}
 	my $tmp = mktemp($dest . '.XXXXXXXX');
 	Run::runAndCheck(('cp', $file, $tmp));
 	rename($tmp, $dest);
@@ -581,7 +566,7 @@ sub seriesCleanup($) {
 	my ($name) = @_;
 	$name =~ s/\b(?:and|\&)\b/ /ig;
 	$name =~ s/^\s*The\b//ig;
-	if (!($name =~ /Being\s+Human/i)) {
+	if (!($name =~ /Being\W+Human/i)) {
 		$name =~ s/\bUS\b?\s*$//ig;
 		$name =~ s/\([^\)]*\)//g;
 	}
