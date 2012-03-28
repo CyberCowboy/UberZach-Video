@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Config
-EXEC_DIR="${HOME}/bin/video"
+EXEC_DIR="${HOME}/bin/video/plexMonitor"
 TEMP_DIR="`getconf DARWIN_USER_TEMP_DIR`"
 
 # Compare the current state to the last one
@@ -64,4 +64,3 @@ done
 # Cleanup
 rm -f "${TEMP_FILE}"
 exit 0
-

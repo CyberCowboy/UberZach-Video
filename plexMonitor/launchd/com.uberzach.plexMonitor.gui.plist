@@ -20,7 +20,7 @@
 	</dict>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/tv/bin/video/plexMonitor-gui</string>
+		<string>/Users/tv/bin/video/plexMonitor/plexMonitor-gui</string>
 		<string>15</string>
 	</array>
 </dict>
