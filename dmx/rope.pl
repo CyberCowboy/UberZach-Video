@@ -13,8 +13,7 @@ my %DIM = (
 	'PLAY'  => { 'value' => 64,  'time' => 250 },
 	'PAUSE' => { 'value' => 192, 'time' => 1000 }
 );
-my $TIMEOUT = 600;              # Seconds
-my $DELAY   = 0.5 * 1000000;    # Microseconds
+my $TIMEOUT = 600;    # Seconds
 
 # App config
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
@@ -34,6 +33,13 @@ my $DEBUG = 0;
 if ($ENV{'DEBUG'}) {
 	$DEBUG = 1;
 }
+
+# Command-line arguments
+my ($DELAY) = @ARGV;
+if (!$DELAY) {
+	$DELAY = 0.5;
+}
+$DELAY *= 1000000;    # Microseconds;
 
 # Sanity check
 if (!-d $EXEC_DIR || !-d $DATA_DIR) {
