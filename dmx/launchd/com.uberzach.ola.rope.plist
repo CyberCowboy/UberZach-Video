@@ -6,13 +6,12 @@
 	<string>tv</string>
 	<key>LimitLoadToHosts</key>
 	<array>
-		<string>beddy.uberzach.com</string>
 		<string>heady.uberzach.com</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>Label</key>
-	<string>com.uberzach.plexMonitor.playing</string>
+	<string>com.uberzach.ola.rope</string>
 	<key>KeepAlive</key>
 	<dict>
 		<key>NetworkState</key>
@@ -20,8 +19,7 @@
 	</dict>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/tv/bin/video/plexMonitor/plexMonitor-playing</string>
-		<string>0.5</string>
+		<string>/Users/tv/bin/video/dmx/rope.sh</string>
 	</array>
 </dict>
 </plist>

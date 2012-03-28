@@ -8,11 +8,12 @@ DIM_PLAY_TIME=250
 DIM_PAUSE=192
 DIM_PAUSE_TIME=1000
 OFF_TIMEOUT=600
-DELAY=0.25
+DELAY=0.5
 
 # App Config
 TEMP_DIR="`getconf DARWIN_USER_TEMP_DIR`"
 EXEC_DIR="${HOME}/bin/video/dmx"
+export PYTHONPATH="${PYTHONPATH}:/opt/local/lib/python2.7/site-packages:/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages"
 
 cleanup() {
 	exit 0

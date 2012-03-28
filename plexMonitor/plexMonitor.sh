@@ -42,10 +42,7 @@ if [ ! -d "${EXEC_DIR}" ] || [ ! -d "${TEMP_DIR}" ]; then
 fi
 
 # Allow use in daemon mode
-LOOP_DELAY=0
-if [ -n "${1}" ] && [ "${1}" -gt 0 ]; then
-	LOOP_DELAY=$1
-fi
+LOOP_DELAY="${1}"
 
 # Determine who we are
 MODE="PLAYING"
