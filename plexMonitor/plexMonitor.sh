@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Config
-EXEC_DIR="${HOME}/bin/video/plexMonitor"
+EXEC_DIR="${HOME}/bin/video"
 TEMP_DIR="`getconf DARWIN_USER_TEMP_DIR`"
 
 # Compare the current state to the last one
@@ -19,6 +19,19 @@ compareState() {
 	if [ $CHANGED -gt 0 ]; then
 		date '+%s' > "${MODE}.lastUpdate"
 		mv "${TEMP_FILE}" "${MODE}"
+	fi
+
+	# Special case for PLAYING mode -- it's a bit of a hack, but it saves a lot of code other places
+	if [ $CHANGED -gt 0 ] && [ "${MODE}" == "PLAYING" ]; then
+		LAST_PLAYING=$PLAYING
+		PLAYING=0
+		if grep -q 'PlayStatus\:Playing' "${MODE}"; then
+			PLAYING=1
+		fi
+		if [ -z "${LAST_PLAYING}" ] || [ $LAST_PLAYING -ne $PLAYING ]; then
+			echo $PLAYING > "PLAY_STATUS"
+			cp "${MODE}.lastUpdate" "PLAY_STATUS.lastUpdate"
+		fi
 	fi
 }
 
@@ -56,10 +69,12 @@ cd "${DATA_DIR}"
 compareState
 
 # Sleep and repeat (if requested)
-while [ $LOOP_DELAY -gt 0 ]; do
-	sleep $LOOP_DELAY
-	compareState
-done
+if [ -n "${LOOP_DELAY}" ]; then
+	while [ 1 ]; do
+		sleep $LOOP_DELAY
+		compareState
+	done
+fi
 
 # Cleanup
 rm -f "${TEMP_FILE}"
