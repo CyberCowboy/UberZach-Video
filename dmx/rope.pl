@@ -114,6 +114,8 @@ while (1) {
 			$state = 'OFF';
 		} elsif ($state eq 'OFF' && $timeSinceUpdate < $TIMEOUT) {
 			$state = 'PAUSE';
+		} elsif ($state eq 'INIT') {
+			$state = 'OFF';
 		}
 	}
 
