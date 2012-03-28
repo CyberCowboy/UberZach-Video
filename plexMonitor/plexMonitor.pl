@@ -77,7 +77,7 @@ do {
 			$playing = 1;
 		}
 		my ($fh, $tmp) = tempfile($DATA_DIR . '/PLAY_STATUS.XXXXXXXX', 'UNLINK' => 0);
-		print $fh $playing;
+		print $fh $playing . "\n";
 		close($fh);
 		rename($tmp, $DATA_DIR . '/PLAY_STATUS');
 	}
