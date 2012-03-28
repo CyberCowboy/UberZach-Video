@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use File::Temp;
 use Time::HiRes qw( usleep );
 
 # Prototypes
