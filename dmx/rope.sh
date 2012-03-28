@@ -11,7 +11,7 @@ OFF_TIMEOUT=600
 DELAY=0.5
 
 # App Config
-TEMP_DIR="`getconf DARWIN_USER_TEMP_DIR`"
+TEMP_DIR="`getconf DARWIN_USER_TEMP_DIR`/plexMonitor"
 EXEC_DIR="${HOME}/bin/video/dmx"
 export PYTHONPATH="${PYTHONPATH}:/opt/local/lib/python2.7/site-packages:/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages"
 
@@ -39,51 +39,81 @@ if [ ! -d "${EXEC_DIR}" ] || [ ! -d "${TEMP_DIR}" ]; then
 fi
 
 # Move into position
-cd "${TEMP_DIR}/plexMonitor"
+cd "${TEMP_DIR}"
 
 # State
-STATE="PLAYING"
+STATE="OFF"
+LAST_STATE="OFF"
 DIM_LAST=$DIM_PLAY
 PLAYING=0
 LAST_UPDATE=0
 LAST_PLAYING=0
 
+# Always force lights out at launch
+"${EXEC_DIR}/setChannels.py" 0
+
 # Loop forever
 while [ 1 ]; do
-	# Reset
-	CHANGED=0
-
-	# Monitor the playing file for changes
+	# Monitor the PLAY_STATUS file for changes and state
+	LAST_PLAYING=$PLAYING
 	UPDATE=$(checkForUpdates PLAY_STATUS.lastUpdate)
 	if [ $UPDATE -gt $LAST_UPDATE ]; then
 		LAST_UPDATE=$UPDATE
-		CHANGED=1
-	fi
-
-	# Grab the new play state
-	LAST_PLAYING=$PLAYING
-	if [ $CHANGED -gt 0 ]; then
 		PLAYING="`cat PLAY_STATUS`"
 		PLAYING=$(( $PLAYING + 0 ))
 	fi
 
-	# Turn off when we reach the timeout
-	if [ $PLAYING -lt 1 ] && [ "${STATE}" != "OFF" ] && [ $(( LAST_UPDATE + $OFF_TIMEOUT )) -lt `date '+%s'` ]; then
-		STATE="OFF"
-		"${EXEC_DIR}/dimChannels.py" $DIM_OFF_TIME $DIM_LAST $DIM_OFF
-		DIM_LAST=$DIM_OFF
+	# Monitor the GUI file for changes only
+	UPDATE=$(checkForUpdates GUI.lastUpdate)
+	if [ $UPDATE -gt $LAST_UPDATE ]; then
+		LAST_UPDATE=$UPDATE
+	fi
+	UPDATE=$(checkForUpdates PLAYING.lastUpdate)
+	if [ $UPDATE -gt $LAST_UPDATE ]; then
+		LAST_UPDATE=$UPDATE
+	fi
 
-	# If something has changed, check the actual play state
-	elif [ $PLAYING -ne $LAST_PLAYING ]; then
+	# Detect when we change states
+	LAST_STATE=$STATE
+
+	# If the play state has changed we must adjust
+	if [ $PLAYING -ne $LAST_PLAYING ]; then
 		if [ $PLAYING -gt 0 ]; then
 			STATE="PLAYING"
+		else
+			STATE="PAUSED"
+		fi
+
+	# If we're not playing, check for timeouts
+	elif [ $PLAYING -lt 1 ]; then
+		TIME_SINCE_CHANGE=$(( `date '+%s'` - $LAST_UPDATE ))
+
+		# Turn off when we reach the timeout
+		if [ "${STATE}" != "OFF" ] && [ $TIME_SINCE_CHANGE -gt $OFF_TIMEOUT ]; then
+			STATE="OFF"
+		# But fire back up if anything changes
+		elif [ "${STATE}" == "OFF" ] && [ $TIME_SINCE_CHANGE -lt $OFF_TIMEOUT ]; then
+			STATE="PAUSED"
+		fi
+	fi
+
+
+	# Set the lighting state
+	if [ "${STATE}" != "${LAST_STATE}" ]; then
+		if [ "${STATE}" == "PAUSED" ]; then
+			"${EXEC_DIR}/dimChannels.py" $DIM_PAUSE_TIME $DIM_LAST $DIM_PAUSE
+			DIM_LAST=$DIM_PAUSE
+		elif [ "${STATE}" == "PLAYING" ]; then
 			"${EXEC_DIR}/dimChannels.py" $DIM_PLAY_TIME $DIM_LAST $DIM_PLAY
 			DIM_LAST=$DIM_PLAY
 		else
-			STATE="PAUSED"
-			"${EXEC_DIR}/dimChannels.py" $DIM_PAUSE_TIME $DIM_LAST $DIM_PAUSE
-			DIM_LAST=$DIM_PAUSE
+			"${EXEC_DIR}/dimChannels.py" $DIM_OFF_TIME $DIM_LAST $DIM_OFF
+			DIM_LAST=$DIM_OFF
 		fi
+
+		# Save the state to disk for external reference
+		echo -e "State: ${STATE}\nValue: ${DIM_LAST}" > ROPE
+		date '+%s' > ROPE.lastUpdate
 	fi
 
 	# Delay
