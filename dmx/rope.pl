@@ -12,8 +12,8 @@ my %DIM = (
 	'PLAY'  => { 'value' => 64,  'time' => 250 },
 	'PAUSE' => { 'value' => 192, 'time' => 1000 }
 );
-my $TIMEOUT = 600; # Seconds
-my $DELAY   = 0.5 * 1000000; # Microseconds
+my $TIMEOUT = 600;              # Seconds
+my $DELAY   = 0.5 * 1000000;    # Microseconds
 
 # App config
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
