@@ -50,16 +50,21 @@ if (!-d $DATA_DIR) {
 }
 
 # Loop forever (unless no delay is set)
+my $data     = '';
 my $dataLast = '';
 do {
-	my $changed = 0;
 
 	# Run the monitor command
-	my $data = xbmcHTTP($CMDS{$MODE});
+	my $changed = 0;
+	$dataLast = $data;
+	$data     = xbmcHTTP($CMDS{$MODE});
 
 	# Compare this data set to the last
 	if ($data ne $dataLast) {
 		$changed = 1;
+		if ($DEBUG) {
+			print STDERR "Change detected in data:\n" . $data . "\n";
+		}
 	}
 
 	# If anything changed, save the data to disk
