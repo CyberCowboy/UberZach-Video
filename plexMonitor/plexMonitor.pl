@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use File::Temp;
 use File::Basename;
 use Time::HiRes qw( usleep );
+use File::Temp qw( tempfile );
 
 # App config
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
