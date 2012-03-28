@@ -126,15 +126,10 @@ while (1) {
 		$valueLast = $DIM{$state}{'value'};
 
 		# Save the state and value to disk
-		my $fh;
-		open($fh, '>', $DATA_DIR . '/ROPE')
-		  or die("Unable to open ROPE");
+		my ($fh, $tmp) = tempfile($DATA_DIR . '/ROPE.XXXXXXXX', 'UNLINK' => 0);
 		print $fh 'State: ' . $state . "\nValue: " . $valueLast . "\n";
 		close($fh);
-		open($fh, '>', $DATA_DIR . '/ROPE.lastUpdate')
-		  or die("Unable to open ROPE");
-		print $fh time() . "\n";
-		close($fh);
+		rename($tmp, $DATA_DIR . '/ROPE');
 	}
 
 	# Wait and loop
