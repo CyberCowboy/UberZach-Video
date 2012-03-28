@@ -1,15 +1,24 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use LWP::Simple;
 use File::Basename;
 use Time::HiRes qw( usleep );
 use File::Temp qw( tempfile );
+
+# Prototypes
+sub xbmcHTTP($);
 
 # App config
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
 my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
-my $EXEC_DIR = $ENV{'HOME'} . '/bin/video';
+
+# xbmcHTTP commands
+my %CMDS = (
+	'PLAYING' => 'GetCurrentlyPlaying',
+	'GUI'     => 'GetGuiStatus'
+);
 
 # Debug
 my $DEBUG = 0;
@@ -22,19 +31,17 @@ my ($DELAY) = @ARGV;
 if (!$DELAY) {
 	$DELAY = 0;
 }
-$DELAY = int($DELAY) * 1000000;    # Microseconds;
+$DELAY *= 1000000;    # Microseconds;
 
 # Sanity check
-if (!-d $EXEC_DIR || !-d $TEMP_DIR) {
+if (!-d $TEMP_DIR) {
 	die("Bad config\n");
 }
 
 # Mode
 my $MODE = 'PLAYING';
-my $CMD  = 'plex-playing';
 if (basename($0) =~ /GUI/i) {
 	$MODE = 'GUI';
-	$CMD  = 'plex-gui';
 }
 
 # Add the data directory as needed
@@ -48,8 +55,7 @@ do {
 	my $changed = 0;
 
 	# Run the monitor command
-	my $cmd = $EXEC_DIR . '/' . $CMD;
-	my $data = `$cmd`;
+	my $data = xbmcHTTP($CMDS{$MODE});
 
 	# Compare this data set to the last
 	if ($data ne $dataLast) {
@@ -82,3 +88,8 @@ do {
 
 # Exit cleanly
 exit(0);
+
+sub xbmcHTTP($) {
+	my ($cmd) = @_;
+	return get('http://localhost:3000/xbmcCmds/xbmcHttp?command=' . $cmd);
+}
