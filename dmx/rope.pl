@@ -18,7 +18,7 @@ my $DELAY   = 0.5 * 1000000;    # Microseconds
 # App config
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
-$TEMP_DIR = $TEMP_DIR . '/plexMonitor';
+my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
 my $EXEC_DIR = $ENV{'HOME'} . '/bin/video/dmx';
 
 # Ensure python can find its OLA imports
@@ -35,7 +35,7 @@ if ($ENV{'DEBUG'}) {
 }
 
 # Sanity check
-if (!-d $EXEC_DIR || !-d $TEMP_DIR) {
+if (!-d $EXEC_DIR || !-d $DATA_DIR) {
 	die("Bad config\n");
 }
 
@@ -56,14 +56,14 @@ while (1) {
 	# Monitor the PLAY_STATUS file for changes and state
 	$playingLast = $playing;
 	{
-		my $mtime = mtime($TEMP_DIR . '/PLAY_STATUS');
+		my $mtime = mtime($DATA_DIR . '/PLAY_STATUS');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 
 			# Grab the PLAY_STATUS value
 			$playing = 0;
 			my $fh;
-			open($fh, $TEMP_DIR . '/PLAY_STATUS')
+			open($fh, $DATA_DIR . '/PLAY_STATUS')
 			  or die("Unable to open PLAY_STATUS\n");
 			my $text = <$fh>;
 			close($fh);
@@ -75,11 +75,11 @@ while (1) {
 
 	# Monitor the GUI and PLAYING files for changes only
 	{
-		my $mtime = mtime($TEMP_DIR . '/PLAYING');
+		my $mtime = mtime($DATA_DIR . '/PLAYING');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
-		$mtime = mtime($TEMP_DIR . '/GUI');
+		$mtime = mtime($DATA_DIR . '/GUI');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
@@ -127,11 +127,11 @@ while (1) {
 
 		# Save the state and value to disk
 		my $fh;
-		open($fh, '>', $TEMP_DIR . '/ROPE')
+		open($fh, '>', $DATA_DIR . '/ROPE')
 		  or die("Unable to open ROPE");
 		print $fh 'State: ' . $state . "\nValue: " . $valueLast . "\n";
 		close($fh);
-		open($fh, '>', $TEMP_DIR . '/ROPE.lastUpdate')
+		open($fh, '>', $DATA_DIR . '/ROPE.lastUpdate')
 		  or die("Unable to open ROPE");
 		print $fh time() . "\n";
 		close($fh);
