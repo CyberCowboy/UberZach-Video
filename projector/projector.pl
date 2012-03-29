@@ -12,13 +12,13 @@ sub collectUntil($$);
 my $PORT = '/dev/tty.Projector-DevB';
 
 # Protocol parameters
-my $CRLF = "\r\n";
+my $CRLF      = "\r\n";
 my $DELIMITER = ':';
 
 # App config
-my $BYTE_TIMEOUT = 500;
+my $BYTE_TIMEOUT    = 500;
 my $SILENCE_TIMEOUT = $BYTE_TIMEOUT * 10;
-my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
+my $TEMP_DIR        = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
 my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
 
@@ -41,7 +41,7 @@ if (!-r $PORT || !-d $DATA_DIR) {
 
 # Port init
 my $port = new Device::SerialPort($PORT)
-  or die ("Unable to open projector serial connection\n");
+  or die("Unable to open projector serial connection\n");
 $port->read_const_time($BYTE_TIMEOUT);
 $port->lookclear();
 
@@ -49,12 +49,13 @@ $port->lookclear();
 sendQuery($port, '');
 
 # Track the projector power state
-my $power = -1;
+my $power     = -1;
 my $powerLast = $power;
 while (1) {
+
 	# Check the power state
 	$powerLast = $power;
-	$power = 0;
+	$power     = 0;
 	my $result = sendQuery($port, 'PWR?');
 	if ($result =~ /PWR\=(\d+)/) {
 		if ($1 > 0) {
@@ -101,7 +102,7 @@ sub collectUntil($$) {
 
 	# This byte-by-byte reading is not efficient, but it's safe
 	# Allow reading forever as long as we don't exceed the silence timeout
-	my $count = 0;
+	my $count  = 0;
 	my $string = '';
 	while ($count < $SILENCE_TIMEOUT / $BYTE_TIMEOUT) {
 		my $byte = $port->read(1);
