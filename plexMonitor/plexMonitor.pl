@@ -96,5 +96,9 @@ exit(0);
 
 sub xbmcHTTP($) {
 	my ($cmd) = @_;
-	return get('http://localhost:3000/xbmcCmds/xbmcHttp?command=' . $cmd);
+	my $data = get('http://localhost:3000/xbmcCmds/xbmcHttp?command=' . $cmd);
+	if (!defined($data)) {
+		$data = '';
+	}
+	return $data;
 }

@@ -147,6 +147,9 @@ while (1) {
 
 sub mtime($) {
 	my ($file) = @_;
-	my (undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), $mtime, undef(), undef(), undef()) = stat($file);
+	my $mtime = 0;
+	if (-r $file) {
+		(undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), $mtime, undef(), undef(), undef()) = stat($file);
+	}
 	return $mtime;
 }
