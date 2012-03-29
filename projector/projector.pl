@@ -21,6 +21,7 @@ my $SILENCE_TIMEOUT = $BYTE_TIMEOUT * 10;
 my $TEMP_DIR        = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
 my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
+my $CMD_FILE = $DATA_DIR . '/PROJECTOR_CMD';
 
 # Debug
 my $DEBUG = 0;
@@ -52,6 +53,61 @@ sendQuery($port, '');
 my $power     = -1;
 my $powerLast = $power;
 while (1) {
+
+	# Check for queued commands
+	my $cmd = undef();
+	if (-r $CMD_FILE) {
+		if ($DEBUG) {
+			print STDERR "Found projector command file\n";
+		}
+
+		# Open and immediately unlink the file (to de-queue the command)
+		my $fh;
+		open($fh, $CMD_FILE);
+		unlink($CMD_FILE);
+
+		# If we got the file open before it disappeared
+		if ($fh) {
+			my $text = <$fh>;
+			chomp($text);
+			close($fh);
+			if ($DEBUG) {
+				print STDERR 'Got raw command: ' . $text . "\n";
+			}
+
+			# Check for known commands
+			if ($text =~ /OFF/i) {
+				$cmd = 'OFF';
+			} elsif ($text =~ /ON/i) {
+				$cmd = 'ON';
+			}
+			if ($DEBUG) {
+				print STDERR 'Found command: ' . $cmd . "\n";
+			}
+		}
+
+		# If we got a command, validate it
+		if ($cmd) {
+			if ($cmd eq 'ON' && $power) {
+				$cmd = undef();
+			} elsif ($cmd eq 'OFF' && !$power) {
+				$cmd = undef();
+			}
+		}
+
+		# Send the command
+		if ($cmd) {
+			if ($DEBUG) {
+				print STDERR 'Sending command: ' . $cmd . "\n";
+			}
+			my $result = undef();
+			if ($cmd eq 'OFF') {
+				$result = sendQuery($port, 'PWR OFF');
+			} elsif ($cmd eq 'ON') {
+				$result = sendQuery($port, 'PWR ON');
+			}
+		}
+	}
 
 	# Check the power state
 	$powerLast = $power;
