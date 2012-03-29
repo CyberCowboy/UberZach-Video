@@ -65,17 +65,20 @@ while (1) {
 		my $mtime = mtime($DATA_DIR . '/PLAY_STATUS');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
+		}
 
-			# Grab the PLAY_STATUS value
-			$playing = 0;
-			my $fh;
-			open($fh, $DATA_DIR . '/PLAY_STATUS')
-			  or die("Unable to open PLAY_STATUS\n");
-			my $text = <$fh>;
-			close($fh);
-			if ($text =~ /1/) {
-				$playing = 1;
-			}
+		# Grab the PLAY_STATUS value
+		$playing = 0;
+		my $fh;
+		open($fh, $DATA_DIR . '/PLAY_STATUS')
+		  or die("Unable to open PLAY_STATUS\n");
+		my $text = <$fh>;
+		close($fh);
+		if ($text =~ /1/) {
+			$playing = 1;
+		}
+		if ($DEBUG) {
+			print STDERR 'Playing: ' . $playing . "\n";
 		}
 	}
 
@@ -84,17 +87,20 @@ while (1) {
 		my $mtime = mtime($DATA_DIR . '/PROJECTOR');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
+		}
 
-			# Grab the PROJECTOR value
-			$projector = 0;
-			my $fh;
-			open($fh, $DATA_DIR . '/PROJECTOR')
-			  or die("Unable to open PROJECTOR\n");
-			my $text = <$fh>;
-			close($fh);
-			if ($text =~ /1/) {
-				$projector = 1;
-			}
+		# Grab the PROJECTOR value
+		$projector = 0;
+		my $fh;
+		open($fh, $DATA_DIR . '/PROJECTOR')
+		  or die("Unable to open PROJECTOR\n");
+		my $text = <$fh>;
+		close($fh);
+		if ($text =~ /1/) {
+			$projector = 1;
+		}
+		if ($DEBUG) {
+			print STDERR 'Projector: ' . $projector . "\n";
 		}
 	}
 
