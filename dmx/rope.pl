@@ -50,18 +50,17 @@ if (!-d $EXEC_DIR || !-d $DATA_DIR) {
 system($EXEC_DIR . '/setChannels.py', 0);
 
 # State
-my $state       = 'INIT';
-my $stateLast   = $state;
-my $playing     = 0;
-my $playingLast = $playing;
-my $valueLast   = $DIM{'OFF'}{'value'};
-my $updateLast  = 0;
+my $state      = 'INIT';
+my $stateLast  = $state;
+my $playing    = 0;
+my $projector  = 0;
+my $updateLast = 0;
+my $valueLast  = $DIM{'OFF'}{'value'};
 
 # Loop forever
 while (1) {
 
 	# Monitor the PLAY_STATUS file for changes and state
-	$playingLast = $playing;
 	{
 		my $mtime = mtime($DATA_DIR . '/PLAY_STATUS');
 		if ($mtime > $updateLast) {
@@ -80,6 +79,25 @@ while (1) {
 		}
 	}
 
+	# Monitor the PROJECTOR file for changes and state
+	{
+		my $mtime = mtime($DATA_DIR . '/PROJECTOR');
+		if ($mtime > $updateLast) {
+			$updateLast = $mtime;
+
+			# Grab the PROJECTOR value
+			$projector = 0;
+			my $fh;
+			open($fh, $DATA_DIR . '/PROJECTOR')
+			  or die("Unable to open PROJECTOR\n");
+			my $text = <$fh>;
+			close($fh);
+			if ($text =~ /1/) {
+				$projector = 1;
+			}
+		}
+	}
+
 	# Monitor the GUI and PLAYING files for changes only
 	{
 		my $mtime = mtime($DATA_DIR . '/PLAYING');
@@ -94,29 +112,27 @@ while (1) {
 
 	# Calculate the new state
 	$stateLast = $state;
-	if ($playing != $playingLast) {
-		if ($DEBUG) {
-			print STDERR "Play state changed\n";
-		}
+	if ($projector) {
 
-		# We always need to update when the play state changes
+		# We are always either playing or paused if the projector is on
 		if ($playing) {
 			$state = 'PLAY';
 		} else {
 			$state = 'PAUSE';
 		}
 
-	} elsif (!$playing) {
+	} else {
 
-		# If we're not playing, check the timeout
+		# If the projector is off, check the timeouts
 		my $timeSinceUpdate = time() - $updateLast;
 		if ($state ne 'OFF' && $timeSinceUpdate > $TIMEOUT) {
 			$state = 'OFF';
 		} elsif ($state eq 'OFF' && $timeSinceUpdate < $TIMEOUT) {
 			$state = 'PAUSE';
-		} elsif ($state eq 'INIT') {
-			$state = 'OFF';
 		}
+	}
+	if ($state eq 'INIT') {
+		$state = 'OFF';
 	}
 
 	# Update the lighting state
