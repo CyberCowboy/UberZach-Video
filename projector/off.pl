@@ -77,10 +77,13 @@ while (1) {
 			$state = 'ON';
 		}
 	} elsif ($projector) {
-		if ($timeSinceUpdate > $TIMEOUT + $COUNTDOWN) {
-			$state = 'OFF';
-		} elsif ($timeSinceUpdate > $TIMEOUT) {
+		if ($timeSinceUpdate > $TIMEOUT) {
 			$state = 'COUNTDOWN';
+			if ($timeSinceUpdate > $TIMEOUT + $COUNTDOWN) {
+				$state = 'OFF';
+			}
+		} else {
+			$state = 'ON';
 		}
 	} else {
 		if ($timeSinceUpdate < $TIMEOUT) {
