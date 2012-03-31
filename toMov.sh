@@ -30,11 +30,11 @@ fi
 # Convert to MOV or MKV
 tmpFile="`mktemp -t toMov`"
 if which catmovie > /dev/null 2>&1; then
+	outFile="${outFile}.mov"
 	catmovie -q -self-contained -o "${tmpFile}" "${inFile}" 2>/dev/null
-	outfile="${outfile}.mov"
 elif which mkvmerge > /dev/null 2>&1; then
+	outFile="${outFile}.mkv"
 	mkvmerge -o "${tmpFile}" "${inFile}"
-	outfile="${outfile}.mkv"
 fi
 
 # Check for errors
