@@ -113,7 +113,7 @@ while (1) {
 		$timeLeft = ceil($timeLeft / 60);
 
 		my $plural = 's';
-		if ($timeLeft != 1) {
+		if ($timeLeft == 1) {
 			$plural = '';
 		}
 		system('say', 'Projector powerdown in about ' . $timeLeft . ' minute' . $plural);
