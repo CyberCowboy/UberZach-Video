@@ -133,7 +133,7 @@ foreach my $episode (@episodes) {
 		$file = basename($file);
 		$file =~ s/^\d+\s+\-\s*//;
 		$file =~ s/S\d+E\d+\s+\-\s*//i;
-		$file =~ s/\.\w{2,3}//;
+		$file =~ s/\.\w{2,4}//;
 		if (!$file || length($file) < 2 || $file =~ /NoName/i || $file =~ /Episode\s+\d+/i) {
 			next;
 		}
