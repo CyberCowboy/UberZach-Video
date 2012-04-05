@@ -19,7 +19,7 @@
 	</dict>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/tv/bin/video/amplifier/power.pl</string>
+		<string>/Users/tv/bin/video/amplifier/amplifierPower.pl</string>
 	</array>
 </dict>
 </plist>

@@ -19,7 +19,7 @@
 	</dict>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/tv/bin/video/projector/off.pl</string>
+		<string>/Users/tv/bin/video/projector/projectorPower.pl</string>
 	</array>
 </dict>
 </plist>
