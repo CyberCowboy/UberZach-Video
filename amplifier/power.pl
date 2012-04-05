@@ -4,15 +4,8 @@ use warnings;
 use POSIX qw(ceil floor);
 use File::Temp qw( tempfile );
 
-# Prototypes
-sub mtime($);
-
-# Config
-my $TIMEOUT   = 900;
-my $COUNTDOWN = 300;
-
 # App config
-my $DELAY    = 60;
+my $DELAY    = 5;
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
 my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
@@ -29,25 +22,12 @@ if (!-d $DATA_DIR) {
 }
 
 # State
-my $state      = 'INIT';
-my $stateLast  = $state;
-my $updateLast = 0;
-my $projector  = 0;
+my $state     = 'INIT';
+my $stateLast = $state;
+my $projector = 0;
 
 # Loop forever
 while (1) {
-
-	# Monitor the GUI and PLAYING files for changes only
-	{
-		my $mtime = mtime($DATA_DIR . '/PLAYING');
-		if ($mtime > $updateLast) {
-			$updateLast = $mtime;
-		}
-		$mtime = mtime($DATA_DIR . '/GUI');
-		if ($mtime > $updateLast) {
-			$updateLast = $mtime;
-		}
-	}
 
 	# Monitor the PROJECTOR file for state only
 	{
@@ -65,30 +45,12 @@ while (1) {
 		}
 	}
 
-	# Calculate the new state
-	my $stateLast       = $state;
-	my $timeSinceUpdate = time() - $updateLast;
-	if ($DEBUG) {
-		print STDERR 'Time since update: ' . $timeSinceUpdate . "\n";
-	}
-	if ($state eq 'INIT') {
-		$state = 'OFF';
-		if ($projector) {
-			$state = 'ON';
-		}
-	} elsif ($projector) {
-		if ($timeSinceUpdate > $TIMEOUT) {
-			$state = 'COUNTDOWN';
-			if ($timeSinceUpdate > $TIMEOUT + $COUNTDOWN) {
-				$state = 'OFF';
-			}
-		} else {
-			$state = 'ON';
-		}
+	# Calculate the new state -- track the projector power state
+	my $stateLast = $state;
+	if ($projector) {
+		$state = 'ON';
 	} else {
-		if ($timeSinceUpdate < $TIMEOUT) {
-			$state = 'ON';
-		}
+		$state = 'OFF';
 	}
 
 	# If the state changed, do something about if
@@ -96,41 +58,14 @@ while (1) {
 		if ($DEBUG) {
 			print STDERR 'State change: ' . $stateLast . ' => ' . $state . "\n";
 		}
-		if ($state eq 'OFF') {
-
-			# Turn off the projector
-			my ($fh, $tmp) = tempfile($DATA_DIR . '/PROJECTOR_CMD.XXXXXXXX', 'UNLINK' => 0);
-			print $fh "OFF\n";
+		if ($state eq 'OFF' || $state eq 'ON') {
+			my ($fh, $tmp) = tempfile($DATA_DIR . '/AMPLIFIER_CMD.XXXXXXXX', 'UNLINK' => 0);
+			print $fh $state . "\n";
 			close($fh);
-			rename($tmp, $DATA_DIR . '/PROJECTOR_CMD');
-		} elsif ($state eq 'ON') {
-
-			# Do nothing, at least for the moment
+			rename($tmp, $DATA_DIR . '/AMPLIFIER_CMD');
 		}
-
-	}
-
-	# Always announce a pending shutdown
-	if ($state eq 'COUNTDOWN') {
-		my $timeLeft = ($TIMEOUT + $COUNTDOWN) - $timeSinceUpdate;
-		$timeLeft = ceil($timeLeft / 60);
-
-		my $plural = 's';
-		if ($timeLeft == 1) {
-			$plural = '';
-		}
-		system('say', 'Projector powerdown in about ' . $timeLeft . ' minute' . $plural);
 	}
 
 	# Wait and loop
 	sleep($DELAY);
-}
-
-sub mtime($) {
-	my ($file) = @_;
-	my $mtime = 0;
-	if (-r $file) {
-		(undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), $mtime, undef(), undef(), undef()) = stat($file);
-	}
-	return $mtime;
 }
