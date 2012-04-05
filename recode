@@ -70,13 +70,7 @@ if [ -r "${IN}" ]; then
 	fi
 	if [ $LENGTH_DIFF -gt $RECODE_MAX_DIFF ] ; then
 		KEEP_IN=1
-		if [ $LENGTH_IN -le 1 ] && [ $LENGTH_OUT -ge 1 ]; then
-			echo "`basename "${0}"`: Input file has an invalid duration and will not be deleted: ${IN}" 1>&2
-		else
-			echo "`basename "${0}"`: Output file duration (${LENGTH_OUT}) does not match input file duration (${LENGTH_IN}): ${IN}" 1>&2
-			rm -f "${OUT}"
-			exit 1
-		fi
+		echo "`basename "${0}"`: Output file duration (${LENGTH_OUT}) does not match input file duration (${LENGTH_IN}): ${IN}" 1>&2
 	fi
 
 	# Remove the input file if all is well
