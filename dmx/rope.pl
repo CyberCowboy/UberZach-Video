@@ -9,11 +9,12 @@ sub mtime($);
 
 # User config
 my %DIM = (
-	'OFF'   => { 'value' => 0,   'time' => 10000 },
-	'PLAY'  => { 'value' => 64,  'time' => 250 },
-	'PAUSE' => { 'value' => 192, 'time' => 1000 }
+	'OFF'   => { 'value' => [ 0,   0 ],   'time' => 10000 },
+	'PLAY'  => { 'value' => [ 64,  32 ],  'time' => 250 },
+	'PAUSE' => { 'value' => [ 255, 192 ], 'time' => 1000 }
 );
-my $TIMEOUT = 600;    # Seconds
+my $TIMEOUT      = 600;    # Seconds
+my $NUM_CHANNELS = 2;
 
 # App config
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
@@ -55,7 +56,7 @@ my $stateLast  = $state;
 my $playing    = 0;
 my $projector  = 0;
 my $updateLast = 0;
-my $valueLast  = $DIM{'OFF'}{'value'};
+my @valueLast  = @{ $DIM{'OFF'}{'value'} };
 
 # Loop forever
 while (1) {
@@ -144,21 +145,38 @@ while (1) {
 	# Update the lighting state
 	if ($stateLast ne $state) {
 		if ($DEBUG) {
-			print STDERR 'New state: ' . $state . "\n";
+			print STDERR 'State: ' . $stateLast . ' => ' . $state . "\n";
 			print STDERR "\tTime: " . $DIM{$state}{'time'} . "\n";
-			print STDERR "\tFrom: " . $valueLast . "\n";
-			print STDERR "\tTo: " . $DIM{$state}{'value'} . "\n";
+			for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
+				print STDERR "\tFrom: " . $valueLast[$i] . "\n";
+				print STDERR "\tTo: " . $DIM{$state}{'value'}[$i] . "\n";
+			}
 		}
-		if ($valueLast != $DIM{$state}{'value'}) {
-			system($EXEC_DIR . '/dimChannels.py', $DIM{$state}{'time'}, $valueLast, $DIM{$state}{'value'});
+
+		# Skip no-op changes
+		my $skip = 1;
+		for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
+			if ($valueLast[$i] != $DIM{$state}{'value'}[$i]) {
+				$skip = 0;
+				last;
+			}
+		}
+
+		# Send the dim command
+		if (!$skip) {
+			my @cmd = ($EXEC_DIR . '/dimChannels.py', $DIM{$state}{'time'});
+			for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
+				push(@cmd, $valueLast[$i], $DIM{$state}{'value'}[$i]);
+				$valueLast[$i] = $DIM{$state}{'value'}[$i];
+			}
+			system(@cmd);
 		} elsif ($DEBUG) {
 			print STDERR "Skipping noop dim request\n";
 		}
-		$valueLast = $DIM{$state}{'value'};
 
 		# Save the state and value to disk
 		my ($fh, $tmp) = tempfile($DATA_DIR . '/ROPE.XXXXXXXX', 'UNLINK' => 0);
-		print $fh 'State: ' . $state . "\nValue: " . $valueLast . "\n";
+		print $fh 'State: ' . $state . "\nValue: " . join(',', @valueLast) . "\n";
 		close($fh);
 		rename($tmp, $DATA_DIR . '/ROPE');
 	}
