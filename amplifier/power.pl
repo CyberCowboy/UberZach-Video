@@ -45,8 +45,23 @@ while (1) {
 		}
 	}
 
+	# Monitor the AMPLIFIER file for state only
+	{
+		$stateLast = 'OFF';
+		my $fh;
+		open($fh, $DATA_DIR . '/AMPLIFIER')
+		  or die("Unable to open AMPLIFIER\n");
+		my $text = <$fh>;
+		close($fh);
+		if ($text =~ /1/) {
+			$stateLast = 'ON';
+		}
+		if ($DEBUG) {
+			print STDERR 'Amplifier: ' . $stateLast . "\n";
+		}
+	}
+
 	# Calculate the new state -- track the projector power state
-	my $stateLast = $state;
 	if ($projector) {
 		$state = 'ON';
 	} else {
