@@ -23,7 +23,7 @@ if (basename($0) =~ /PROJECTOR/i) {
 		'OFF'    => 'PWR OFF',
 		'STATUS' => 'PWR?'
 	);
-	$STATUS_ON = 'PW=01';
+	$STATUS_ON = 'PWR=01';
 } elsif (basename($0) =~ /AMPLIFIER/i) {
 	$DEV       = 'AMPLIFIER';
 	$PORT      = '/dev/tty.Amplifier-DevB';
@@ -213,16 +213,16 @@ sub collectUntil($$) {
 		return undef();
 	}
 
-	# Strip leading or trailing whitespace
-	$string =~ s/^\s+//;
-	$string =~ s/\s+$//;
-
 	# Translate CRLF and CR to LF
 	$string =~ s/\r\n/\n/g;
 	$string =~ s/\r/\n/g;
 
 	# Strip the trailing delimiter
 	$string =~ s/${char}$//;
+
+	# Strip leading or trailing whitespace
+	$string =~ s/^\s+//;
+	$string =~ s/\s+$//;
 
 	# Return our clean string
 	if ($DEBUG) {
