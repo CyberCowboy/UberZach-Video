@@ -29,13 +29,22 @@ if (basename($0) =~ /PROJECTOR/i) {
 } elsif (basename($0) =~ /AMPLIFIER/i) {
 	$DEV       = 'AMPLIFIER';
 	$PORT      = '/dev/tty.Amplifier-DevB';
-	$CRLF      = "\r\n";
+	$CRLF      = "\r";
 	$DELIMITER = "\r";
 	%CMDS      = (
-		'INIT'   => '',
-		'ON'     => 'PWON',
-		'OFF'    => 'PWSTANDBY',
-		'STATUS' => 'PW?'
+		'INIT'     => '',
+		'ON'       => 'PWON',
+		'OFF'      => 'PWSTANDBY',
+		'STATUS'   => 'PW?',
+		'VOL+'     => 'MVUP',
+		'VOL-'     => 'MVDOWN',
+		'MUTE'     => 'MUON',
+		'UNMUTE'   => 'MUOFF',
+		'TV'       => 'SITV',
+		'DVD'      => 'SIDVD',
+		'SURROUND' => 'MSDOLBY SURROUND',
+		'STEREO'   => 'MS7CH STEREO',
+
 	);
 	$STATUS_ON = 'PWON';
 } else {
@@ -44,7 +53,7 @@ if (basename($0) =~ /PROJECTOR/i) {
 
 # App config
 my $DELAY_STATUS    = 5;
-my $BYTE_TIMEOUT    = 500;
+my $BYTE_TIMEOUT    = 50;
 my $SILENCE_TIMEOUT = $BYTE_TIMEOUT * 10;
 my $MAX_CMD_LEN     = 1024;
 my $TEMP_DIR        = `getconf DARWIN_USER_TEMP_DIR`;
@@ -100,7 +109,8 @@ while (1) {
 
 	# Calculate our next timeout
 	# Hold on select() but not more than $DELAY_STATUS after our last update
-	my $timeout = ($lastStatus + $DELAY_STATUS) - time();
+	# Plus 1 because we aren't using hi-res time
+	my $timeout = ($lastStatus + $DELAY_STATUS + 1) - time();
 	if ($timeout < 1) {
 		$timeout = 0;
 	}
@@ -136,14 +146,14 @@ while (1) {
 				print STDERR 'Sending command: ' . $cmd . "\n";
 			}
 			my $result = sendQuery($port, $CMDS{$cmd});
-			if ($DEBUG) {
+			if ($DEBUG && $result) {
 				print STDERR "\tGot result: " . $result . "\n";
 			}
 		}
 	}
 
 	# Check the power state, but not too frequently
-	if ($lastStatus < time() + $DELAY_STATUS) {
+	if (time() > $lastStatus + $DELAY_STATUS) {
 		$lastStatus = time();
 		$powerLast  = $power;
 		$power      = 0;
