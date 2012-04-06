@@ -1,9 +1,11 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Device::SerialPort;
 use File::Basename;
 use File::Temp qw( tempfile );
+use IO::Select;
+use IO::Socket::UNIX;
+use Device::SerialPort;
 
 # Prototypes
 sub sendQuery($$);
@@ -41,12 +43,14 @@ if (basename($0) =~ /PROJECTOR/i) {
 }
 
 # App config
+my $DELAY_STATUS    = 5;
 my $BYTE_TIMEOUT    = 500;
 my $SILENCE_TIMEOUT = $BYTE_TIMEOUT * 10;
+my $MAX_CMD_LEN     = 1024;
 my $TEMP_DIR        = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
-my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
-my $CMD_FILE = $DATA_DIR . '/' . $DEV . '_CMD';
+my $DATA_DIR = $TEMP_DIR . 'plexMonitor/';
+my $CMD_FILE = $DATA_DIR . $DEV . '.socket';
 
 # Debug
 my $DEBUG = 0;
@@ -65,85 +69,106 @@ if (!-r $PORT || !-d $DATA_DIR) {
 	die("Bad config\n");
 }
 
+# Socket init
+if (-e $CMD_FILE) {
+	unlink($CMD_FILE);
+}
+my $sock = IO::Socket::UNIX->new(
+	'Local' => $CMD_FILE,
+	'Type'  => SOCK_DGRAM
+) or die('Unable to open socket: ' . $CMD_FILE . ": ${@}\n");
+if (!-S $CMD_FILE) {
+	die('Failed to create socket: ' . $CMD_FILE . "\n");
+}
+my $select = IO::Select->new($sock)
+  or die('Unable to select socket: ' . $CMD_FILE . ": ${!}\n");
+
 # Port init
 my $port = new Device::SerialPort($PORT)
-  or die('Unable to open ' . $DEV . " serial connection\n");
+  or die('Unable to open serial connection: ' . $PORT . ": ${!}\n");
 $port->read_const_time($BYTE_TIMEOUT);
-$port->lookclear();
 
 # Init (clear any previous state)
 sendQuery($port, $CMDS{'INIT'});
 
 # Track the power state
 # Check for new commands
-my $power     = -1;
-my $powerLast = $power;
+my $power      = -1;
+my $powerLast  = $power;
+my $lastStatus = 0;
 while (1) {
 
+	# Calculate our next timeout
+	# Hold on select() but not more than $DELAY_STATUS after our last update
+	my $timeout = ($lastStatus + $DELAY_STATUS) - time();
+	if ($timeout < 1) {
+		$timeout = 0;
+	}
+	if ($DEBUG) {
+		print STDERR 'Waiting for commands with timeout: ' . $timeout . "\n";
+	}
+
 	# Check for queued commands
-	my $cmd = undef();
-	if (-r $CMD_FILE) {
+	my @ready_clients = $select->can_read($timeout);
+	foreach my $fh (@ready_clients) {
+
+		# Grab the inbound text
+		my $text = undef();
+		$fh->recv($text, $MAX_CMD_LEN);
+		$text =~ s/^\s+//;
+		$text =~ s/\s+$//;
 		if ($DEBUG) {
-			print STDERR 'Found ' . $DEV . " command file\n";
+			print STDERR 'Got command: ' . $text . "\n";
 		}
 
-		# Open and immediately unlink the file (to de-queue the command)
-		my $fh;
-		open($fh, $CMD_FILE);
-		unlink($CMD_FILE);
-
-		# If we got the file open before it disappeared
-		if ($fh) {
-			my $text = <$fh>;
-			close($fh);
-			$text =~ s/^\s+//;
-			$text =~ s/\s+$//;
-			if ($DEBUG) {
-				print STDERR 'Got command: ' . $text . "\n";
-			}
-
-			# Only accept valid commands
-			foreach my $name (keys(%CMDS)) {
-				if ($name eq $text) {
-					$cmd = $name;
-					last;
-				}
+		# Only accept valid commands
+		my $cmd = undef();
+		foreach my $name (keys(%CMDS)) {
+			if ($name eq $text) {
+				$cmd = $name;
+				last;
 			}
 		}
 
-		# Send commands
+		# Send command to serial device
 		if ($cmd) {
 			if ($DEBUG) {
 				print STDERR 'Sending command: ' . $cmd . "\n";
 			}
 			my $result = sendQuery($port, $CMDS{$cmd});
+			if ($DEBUG) {
+				print STDERR "\tGot result: " . $result . "\n";
+			}
 		}
 	}
 
-	# Check the power state
-	$powerLast = $power;
-	$power     = 0;
-	my $result = sendQuery($port, $CMDS{'STATUS'});
-	if ($result && $result eq $STATUS_ON) {
-		$power = 1;
-	}
-
-	# If something has changed, save the state to disk
-	if ($powerLast != $power) {
-		if ($DEBUG) {
-			print STDERR 'New ' . $DEV . ' power state: ' . $power . "\n";
+	# Check the power state, but not too frequently
+	if ($lastStatus < time() + $DELAY_STATUS) {
+		$lastStatus = time();
+		$powerLast  = $power;
+		$power      = 0;
+		my $result = sendQuery($port, $CMDS{'STATUS'});
+		if ($result && $result eq $STATUS_ON) {
+			$power = 1;
 		}
-		my ($fh, $tmp) = tempfile($DATA_DIR . '/' . $DEV . '.XXXXXXXX', 'UNLINK' => 0);
-		print $fh $power . "\n";
-		close($fh);
-		rename($tmp, $DATA_DIR . '/' . $DEV);
-	}
 
-	# Delay and loop
-	sleep($DELAY);
+		# If something has changed, save the state to disk
+		if ($powerLast != $power) {
+			if ($DEBUG) {
+				print STDERR 'New ' . $DEV . ' power state: ' . $power . "\n";
+			}
+			my ($fh, $tmp) = tempfile($DATA_DIR . $DEV . '.XXXXXXXX', 'UNLINK' => 0);
+			print $fh $power . "\n";
+			close($fh);
+			rename($tmp, $DATA_DIR . $DEV);
+		}
+	}
 }
 
 # Cleanup
+undef($select);
+close($sock);
+undef($sock);
 $port->close();
 undef($port);
 exit(0);

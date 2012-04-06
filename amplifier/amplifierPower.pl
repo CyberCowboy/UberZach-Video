@@ -1,14 +1,16 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use IO::Socket::UNIX;
 use POSIX qw(ceil floor);
-use File::Temp qw( tempfile );
 
 # App config
 my $DELAY    = 5;
+my $TIMEOUT  = 5;
 my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
-my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
+my $DATA_DIR = $TEMP_DIR . 'plexMonitor/';
+my $CMD_FILE = $DATA_DIR . 'AMPLIFIER.socket';
 
 # Debug
 my $DEBUG = 0;
@@ -17,9 +19,16 @@ if ($ENV{'DEBUG'}) {
 }
 
 # Sanity check
-if (!-d $DATA_DIR) {
+if (!-d $DATA_DIR || !-e $CMD_FILE) {
 	die("Bad config\n");
 }
+
+# Socket init
+my $sock = IO::Socket::UNIX->new(
+	'Peer'    => $CMD_FILE,
+	'Type'    => SOCK_DGRAM,
+	'Timeout' => $TIMEOUT
+) or die('Unable to open socket: ' . $CMD_FILE . ": ${@}\n");
 
 # State
 my $state     = 'INIT';
@@ -33,7 +42,7 @@ while (1) {
 	{
 		$projector = 0;
 		my $fh;
-		open($fh, $DATA_DIR . '/PROJECTOR')
+		open($fh, $DATA_DIR . 'PROJECTOR')
 		  or die("Unable to open PROJECTOR\n");
 		my $text = <$fh>;
 		close($fh);
@@ -49,7 +58,7 @@ while (1) {
 	{
 		$stateLast = 'OFF';
 		my $fh;
-		open($fh, $DATA_DIR . '/AMPLIFIER')
+		open($fh, $DATA_DIR . 'AMPLIFIER')
 		  or die("Unable to open AMPLIFIER\n");
 		my $text = <$fh>;
 		close($fh);
@@ -74,10 +83,8 @@ while (1) {
 			print STDERR 'State change: ' . $stateLast . ' => ' . $state . "\n";
 		}
 		if ($state eq 'OFF' || $state eq 'ON') {
-			my ($fh, $tmp) = tempfile($DATA_DIR . '/AMPLIFIER_CMD.XXXXXXXX', 'UNLINK' => 0);
-			print $fh $state . "\n";
-			close($fh);
-			rename($tmp, $DATA_DIR . '/AMPLIFIER_CMD');
+			$sock->send($state)
+			  or die('Unable to write command to socket: ' . $CMD_FILE . ': ' . $state . ": ${!}\n");
 		}
 	}
 

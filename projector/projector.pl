@@ -1,1 +1,1 @@
-../amplifier/serial.pl
+../serial/serial.pl
