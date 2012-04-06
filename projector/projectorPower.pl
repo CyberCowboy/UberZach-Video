@@ -12,9 +12,9 @@ my $TIMEOUT   = 900;
 my $COUNTDOWN = 300;
 
 # App config
-my $DELAY    = 60;
-my $TIMEOUT  = 5;
-my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
+my $DELAY       = 60;
+my $CMD_TIMEOUT = 5;
+my $TEMP_DIR    = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
 my $DATA_DIR = $TEMP_DIR . 'plexMonitor/';
 my $CMD_FILE = $DATA_DIR . 'PROJECTOR.socket';
@@ -26,7 +26,7 @@ if ($ENV{'DEBUG'}) {
 }
 
 # Sanity check
-if (!-d $DATA_DIR || !-e $CMD_FILE) {
+if (!-d $DATA_DIR || !-S $CMD_FILE) {
 	die("Bad config\n");
 }
 
@@ -34,7 +34,7 @@ if (!-d $DATA_DIR || !-e $CMD_FILE) {
 my $sock = IO::Socket::UNIX->new(
 	'Peer'    => $CMD_FILE,
 	'Type'    => SOCK_DGRAM,
-	'Timeout' => $TIMEOUT
+	'Timeout' => $CMD_TIMEOUT
 ) or die('Unable to open socket: ' . $CMD_FILE . ": ${@}\n");
 
 # State
@@ -132,6 +132,11 @@ while (1) {
 	# Wait and loop
 	sleep($DELAY);
 }
+
+# Cleanup
+$sock->close();
+undef($sock);
+exit(0);
 
 sub mtime($) {
 	my ($file) = @_;

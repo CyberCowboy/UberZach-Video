@@ -19,7 +19,7 @@ if ($ENV{'DEBUG'}) {
 }
 
 # Sanity check
-if (!-d $DATA_DIR || !-e $CMD_FILE) {
+if (!-d $DATA_DIR || !-S $CMD_FILE) {
 	die("Bad config\n");
 }
 
@@ -91,3 +91,8 @@ while (1) {
 	# Wait and loop
 	sleep($DELAY);
 }
+
+# Cleanup
+$sock->close();
+undef($sock);
+exit(0);
