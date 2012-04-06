@@ -40,7 +40,7 @@ my $sock = IO::Socket::UNIX->new(
 # State
 my $state      = 'INIT';
 my $stateLast  = $state;
-my $updateLast = 0;
+my $updateLast = time();
 my $projector  = 0;
 
 # Loop forever
@@ -81,7 +81,7 @@ while (1) {
 		print STDERR 'Time since update: ' . $timeSinceUpdate . "\n";
 	}
 	if ($state eq 'INIT') {
-		$state = 'OFF';
+		$state = 'COUNTDOWN';
 		if ($projector) {
 			$state = 'ON';
 		}
