@@ -2,7 +2,9 @@
 import os
 import sys
 import array
+import socket
 import string
+import subprocess
 from ola.ClientWrapper import ClientWrapper
 
 # ====================================
@@ -60,9 +62,27 @@ if 'INTERVAL' in os.environ:
   universe = int(os.environ['INTERVAL'])
 
 # Pick a socket file ($TMPDIR/plexMonitor/DMX.socket, or as specified in the environment)
-cmd_file = 'plexMonitor/DMX.socket'
+cmd_file = None
+data_dir = None
+if 'SOCKET' in os.environ:
+  cmd_file = os.environ['SOCKET']
+  data_dir = os.dirname(cmd_file)
+else:
+  proc = subprocess.Popen(['getconf', 'DARWIN_USER_TEMP_DIR'], stdout=subprocess.PIPE, shell=False)
+  (tmp_dir, err) = proc.communicate()
+  tmp_dir = tmp_dir.strip()
+  data_dir = tmp_dir + 'plexMonitor/'
+  cmd_file = data_dir + 'DMX.socket'
+
+# Sanity checks
+if (not os.path.isdir(data_dir)):
+  raise Exception('Bad config: ' + data_dir)
 
 # Open the socket
+if (os.path.exists(cmd_file)):
+  os.unlink(cmd_file)
+sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+sock.bind(cmd_file)
 
 # Start the DMX loop
 wrapper = ClientWrapper()
