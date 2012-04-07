@@ -281,10 +281,15 @@ sub audioOptions($) {
 				$codec = $code;
 				last;
 			} elsif ($code eq 'OTHER') {
-				if (!($codec =~ /MP3/i || $codec =~ /MPEG/i)) {
+				if ($codec =~ /MP3/i || $codec =~ /MPEG/i) {
+					$codec = $code;
+				} elsif ($codec eq 'dca') {
+					print STDERR 'Found incompatible audio (' . $track->{'description'} . ')  in track ' . $track->{'index'} . "\n";
+					$codec = undef();
+				} else {
 					print STDERR 'Found unknown audio (' . $track->{'description'} . ') in track ' . $track->{'index'} . "\n";
+					$codec = $code;
 				}
-				$codec = $code;
 			}
 		}
 
@@ -345,6 +350,11 @@ sub audioOptions($) {
 		if ($mixdown == $index && $tracks{$index}->{'codec'} eq 'OTHER' && $tracks{$index}->{'channels'} <= 2) {
 			if ($DEBUG) {
 				print STDERR 'Skipping recode of track ' . $index . ' since it is already used as the default track and contains only ' . $tracks{$index}->{'channels'} . " channels\n";
+			}
+			next;
+		} elsif (!$tracks{$index}->{'codec'}) {
+			if ($DEBUG) {
+				print STDERR 'Skipping track ' . $index . " due to invalid codec\n";
 			}
 			next;
 		} elsif (!isValidAudioLanguage($tracks{$index}->{'language'}, $tracks{$index}->{'iso'})) {
@@ -488,7 +498,7 @@ sub findBestAudioTrack($$) {
 		my $track = $tracks->{$index};
 
 		# Skip tracks not in the specified codec
-		if ($track->{'codec'} ne $codec) {
+		if (!$track->{'codec'} || $track->{'codec'} ne $codec) {
 			next;
 		}
 
