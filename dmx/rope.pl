@@ -56,10 +56,6 @@ my $stateLast  = $state;
 my $playing    = 0;
 my $projector  = 0;
 my $updateLast = 0;
-my @valueLast  = ();
-for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
-	push(@valueLast, 0);
-}
 
 # Always force lights out at launch
 dim(0, 0, 0);
@@ -153,22 +149,20 @@ while (1) {
 		if ($DEBUG) {
 			print STDERR 'State: ' . $stateLast . ' => ' . $state . "\n";
 			for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
-				print STDERR 'Channel: ' . ($i + 1) . "\n";
-				print STDERR "\tFrom: " . $valueLast[$i] . "\n";
-				print STDERR "\tTo: " . $DIM{$state}[$i]{'value'} . "\n";
-				print STDERR "\tOver: " . $DIM{$state}[$i]{'time'} . "\n";
+				print STDERR 'Channel ' . ($i + 1) . ': ' . $DIM{$state}[$i]{'value'} . '@' . $DIM{$state}[$i]{'time'} . "\n";
 			}
 		}
 
 		# Send the dim command
+		my @values = ();
 		for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
 			dim($i + 1, $DIM{$state}[$i]{'time'}, $DIM{$state}[$i]{'value'});
-			$valueLast[$i] = $DIM{$state}[$i]{'value'};
+			push(@values, $DIM{$state}[$i]{'value'});
 		}
 
 		# Save the state and value to disk
 		my ($fh, $tmp) = tempfile($DATA_DIR . 'ROPE.XXXXXXXX', 'UNLINK' => 0);
-		print $fh 'State: ' . $state . "\nValue: " . join(',', @valueLast) . "\n";
+		print $fh 'State: ' . $state . "\nValue: " . join(',', @values) . "\n";
 		close($fh);
 		rename($tmp, $DATA_DIR . 'ROPE');
 	}
