@@ -1,6 +1,11 @@
-#!/usr/bin/python
-import os
+#!/opt/local/bin/python2.7
+
+# Append the path to help find our OLA packages
 import sys
+sys.path.append('/opt/local/lib/python2.7/site-packages')
+sys.path.append('/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages')
+
+import os
 import array
 import select
 import socket
