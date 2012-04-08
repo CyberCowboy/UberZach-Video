@@ -9,6 +9,12 @@ use LWP::Simple;
 use File::Basename;
 use HTTP::Request::Common;
 
+# Debug
+my $DEBUG = 0;
+if ($ENV{'DEBUG'}) {
+	$DEBUG = 1;
+}
+
 # Parameters
 my ($host, $user, $pass, $section, $series) = @ARGV;
 if (!$host || !$user || !$pass || (!$section && !$series)) {
@@ -32,6 +38,9 @@ if ($series) {
 	print STDERR "Fetching shows...\n";
 	{
 		my $content = get($baseURL . '/library/sections/' . $section . '/all/?' . $auth);
+		if ($DEBUG) {
+			print STDERR $baseURL . '/library/sections/' . $section . '/all/?' . $auth . "\n";
+		}
 		if (!$content) {
 			die(basename($0) . ': Unable to fetch data for section: ' . $section . "\n");
 		}
@@ -50,6 +59,9 @@ my @seasons = ();
 print STDERR "Fetching seasons...\n";
 foreach my $show (@shows) {
 	my $content = get($baseURL . $show . '?' . $auth);
+	if ($DEBUG) {
+		print STDERR $baseURL . $show . '?' . $auth . "\n";
+	}
 	if (!$content) {
 		warn(basename($0) . ': Could not fetch seasons for show: ' . $show . "\n");
 		next;
@@ -77,6 +89,9 @@ my @episodes = ();
 print STDERR "Fetching episodes...\n";
 foreach my $season (@seasons) {
 	my $content = get($baseURL . $season . '?' . $auth);
+	if ($DEBUG) {
+		print STDERR $baseURL . $season . '?' . $auth . "\n";
+	}
 	if (!$content) {
 		warn(basename($0) . ': Could not fetch episodes for season: ' . $season . "\n");
 		next;
@@ -103,6 +118,9 @@ undef(@seasons);
 print STDERR "Checking episodes...\n";
 foreach my $episode (@episodes) {
 	my $content = get($baseURL . $episode . '?' . $auth);
+	if ($DEBUG) {
+		print STDERR $baseURL . $episode . '?' . $auth . "\n";
+	}
 	if (!$content) {
 		warn(basename($0) . ': Could not fetch metadata for episode: ' . $episode . "\n");
 		next;
