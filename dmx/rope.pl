@@ -1,33 +1,29 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use IO::Socket;
 use Time::HiRes qw( usleep );
 use File::Temp qw( tempfile );
 
 # Prototypes
 sub mtime($);
+sub dim($$$);
 
 # User config
 my %DIM = (
-	'OFF'   => { 'value' => [ 0,   0 ],   'time' => 10000 },
-	'PLAY'  => { 'value' => [ 64,  32 ],  'time' => 250 },
-	'PAUSE' => { 'value' => [ 255, 192 ], 'time' => 1000 }
+	'OFF'   => [ { 'value' => 0,   'time' => 60000 }, { 'value' => 0,   'time' => 60000 } ],
+	'PLAY'  => [ { 'value' => 64,  'time' => 500 },   { 'value' => 32,  'time' => 500 } ],
+	'PAUSE' => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 10000 } ]
 );
 my $TIMEOUT      = 600;    # Seconds
 my $NUM_CHANNELS = 2;
 
 # App config
-my $TEMP_DIR = `getconf DARWIN_USER_TEMP_DIR`;
+my $SOCK_TIMEOUT = 5;
+my $TEMP_DIR     = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
-my $DATA_DIR = $TEMP_DIR . '/plexMonitor';
-my $EXEC_DIR = $ENV{'HOME'} . '/bin/video/dmx';
-
-# Ensure python can find its OLA imports
-my $PYTHON_PATH = "/opt/local/lib/python2.7/site-packages:/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages";
-if ($ENV{'PYTHONPATH'}) {
-	$PYTHON_PATH = $ENV{'PYTHONPATH'} . ':' . $PYTHON_PATH;
-}
-$ENV{'PYTHONPATH'} = $PYTHON_PATH;
+my $DATA_DIR = $TEMP_DIR . 'plexMonitor/';
+my $CMD_FILE = $DATA_DIR . 'DMX.socket';
 
 # Debug
 my $DEBUG = 0;
@@ -43,12 +39,16 @@ if (!$DELAY) {
 $DELAY *= 1000000;    # Microseconds;
 
 # Sanity check
-if (!-d $EXEC_DIR || !-d $DATA_DIR) {
+if (!-d $DATA_DIR || !-S $CMD_FILE) {
 	die("Bad config\n");
 }
 
-# Always force lights out at launch
-system($EXEC_DIR . '/setChannels.py', 0);
+# Socket init
+my $sock = IO::Socket::UNIX->new(
+	'Peer'    => $CMD_FILE,
+	'Type'    => SOCK_DGRAM,
+	'Timeout' => $SOCK_TIMEOUT
+) or die('Unable to open socket: ' . $CMD_FILE . ": ${@}\n");
 
 # State
 my $state      = 'INIT';
@@ -56,14 +56,20 @@ my $stateLast  = $state;
 my $playing    = 0;
 my $projector  = 0;
 my $updateLast = 0;
-my @valueLast  = @{ $DIM{'OFF'}{'value'} };
+my @valueLast  = ();
+for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
+	push(@valueLast, 0);
+}
+
+# Always force lights out at launch
+dim(0, 0, 0);
 
 # Loop forever
 while (1) {
 
 	# Monitor the PLAY_STATUS file for changes and state
 	{
-		my $mtime = mtime($DATA_DIR . '/PLAY_STATUS');
+		my $mtime = mtime($DATA_DIR . 'PLAY_STATUS');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
@@ -71,7 +77,7 @@ while (1) {
 		# Grab the PLAY_STATUS value
 		$playing = 0;
 		my $fh;
-		open($fh, $DATA_DIR . '/PLAY_STATUS')
+		open($fh, $DATA_DIR . 'PLAY_STATUS')
 		  or die("Unable to open PLAY_STATUS\n");
 		my $text = <$fh>;
 		close($fh);
@@ -85,7 +91,7 @@ while (1) {
 
 	# Monitor the PROJECTOR file for changes and state
 	{
-		my $mtime = mtime($DATA_DIR . '/PROJECTOR');
+		my $mtime = mtime($DATA_DIR . 'PROJECTOR');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
@@ -93,7 +99,7 @@ while (1) {
 		# Grab the PROJECTOR value
 		$projector = 0;
 		my $fh;
-		open($fh, $DATA_DIR . '/PROJECTOR')
+		open($fh, $DATA_DIR . 'PROJECTOR')
 		  or die("Unable to open PROJECTOR\n");
 		my $text = <$fh>;
 		close($fh);
@@ -107,11 +113,11 @@ while (1) {
 
 	# Monitor the GUI and PLAYING files for changes only
 	{
-		my $mtime = mtime($DATA_DIR . '/PLAYING');
+		my $mtime = mtime($DATA_DIR . 'PLAYING');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
-		$mtime = mtime($DATA_DIR . '/GUI');
+		$mtime = mtime($DATA_DIR . 'GUI');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
@@ -146,39 +152,25 @@ while (1) {
 	if ($stateLast ne $state) {
 		if ($DEBUG) {
 			print STDERR 'State: ' . $stateLast . ' => ' . $state . "\n";
-			print STDERR "\tTime: " . $DIM{$state}{'time'} . "\n";
 			for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
+				print STDERR 'Channel: ' . ($i + 1) . "\n";
 				print STDERR "\tFrom: " . $valueLast[$i] . "\n";
-				print STDERR "\tTo: " . $DIM{$state}{'value'}[$i] . "\n";
-			}
-		}
-
-		# Skip no-op changes
-		my $skip = 1;
-		for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
-			if ($valueLast[$i] != $DIM{$state}{'value'}[$i]) {
-				$skip = 0;
-				last;
+				print STDERR "\tTo: " . $DIM{$state}[$i]{'value'} . "\n";
+				print STDERR "\tOver: " . $DIM{$state}[$i]{'time'} . "\n";
 			}
 		}
 
 		# Send the dim command
-		if (!$skip) {
-			my @cmd = ($EXEC_DIR . '/dimChannels.py', $DIM{$state}{'time'});
-			for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
-				push(@cmd, $valueLast[$i], $DIM{$state}{'value'}[$i]);
-				$valueLast[$i] = $DIM{$state}{'value'}[$i];
-			}
-			system(@cmd);
-		} elsif ($DEBUG) {
-			print STDERR "Skipping noop dim request\n";
+		for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
+			dim($i + 1, $DIM{$state}[$i]{'time'}, $DIM{$state}[$i]{'value'});
+			$valueLast[$i] = $DIM{$state}[$i]{'value'};
 		}
 
 		# Save the state and value to disk
-		my ($fh, $tmp) = tempfile($DATA_DIR . '/ROPE.XXXXXXXX', 'UNLINK' => 0);
+		my ($fh, $tmp) = tempfile($DATA_DIR . 'ROPE.XXXXXXXX', 'UNLINK' => 0);
 		print $fh 'State: ' . $state . "\nValue: " . join(',', @valueLast) . "\n";
 		close($fh);
-		rename($tmp, $DATA_DIR . '/ROPE');
+		rename($tmp, $DATA_DIR . 'ROPE');
 	}
 
 	# Wait and loop
@@ -192,4 +184,12 @@ sub mtime($) {
 		(undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), undef(), $mtime, undef(), undef(), undef()) = stat($file);
 	}
 	return $mtime;
+}
+
+# Send the command
+sub dim($$$) {
+	my ($channel, $duration, $intensity) = @_;
+	my $cmd = join(':', $channel, $duration, $intensity);
+	$sock->send($cmd)
+	  or die('Unable to write command to socket: ' . $CMD_FILE . ': ' . $cmd . ": ${!}\n");
 }
