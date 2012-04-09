@@ -16,7 +16,7 @@ my %DIM = (
 	'PAUSE'  => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 10000 } ],
 	'MOTION' => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 1000 } ],
 );
-my $TIMEOUT      = 600;    # Seconds
+my $TIMEOUT      = 300;    # Seconds
 my $NUM_CHANNELS = 2;
 
 # App config
