@@ -11,9 +11,10 @@ sub dim($$$);
 
 # User config
 my %DIM = (
-	'OFF'   => [ { 'value' => 0,   'time' => 60000 }, { 'value' => 0,   'time' => 60000 } ],
-	'PLAY'  => [ { 'value' => 64,  'time' => 500 },   { 'value' => 32,  'time' => 500 } ],
-	'PAUSE' => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 10000 } ]
+	'OFF'    => [ { 'value' => 0,   'time' => 60000 }, { 'value' => 0,   'time' => 60000 } ],
+	'PLAY'   => [ { 'value' => 64,  'time' => 500 },   { 'value' => 32,  'time' => 500 } ],
+	'PAUSE'  => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 10000 } ],
+	'MOTION' => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 1000 } ],
 );
 my $TIMEOUT      = 600;    # Seconds
 my $NUM_CHANNELS = 2;
@@ -107,13 +108,17 @@ while (1) {
 		}
 	}
 
-	# Monitor the GUI and PLAYING files for changes only
+	# Monitor the GUI, PLAYING, and MOTION files for changes only
 	{
 		my $mtime = mtime($DATA_DIR . 'PLAYING');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
 		$mtime = mtime($DATA_DIR . 'GUI');
+		if ($mtime > $updateLast) {
+			$updateLast = $mtime;
+		}
+		$mtime = mtime($DATA_DIR . 'MOTION');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
@@ -137,7 +142,7 @@ while (1) {
 		if ($state ne 'OFF' && $timeSinceUpdate > $TIMEOUT) {
 			$state = 'OFF';
 		} elsif ($state eq 'OFF' && $timeSinceUpdate < $TIMEOUT) {
-			$state = 'PAUSE';
+			$state = 'MOTION';
 		}
 	}
 	if ($state eq 'INIT') {
