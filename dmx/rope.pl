@@ -11,13 +11,12 @@ sub dim($$$);
 
 # User config
 my %DIM = (
-	'OFF'    => [ { 'value' => 0,   'time' => 60000 }, { 'value' => 0,   'time' => 60000 } ],
-	'PLAY'   => [ { 'value' => 64,  'time' => 500 },   { 'value' => 32,  'time' => 500 } ],
-	'PAUSE'  => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 10000 } ],
-	'MOTION' => [ { 'value' => 255, 'time' => 1000 },  { 'value' => 192, 'time' => 1000 } ],
+	'OFF'    => [ { 'channel' => 0, 'value' => 0,   'time' => 60000 } ],
+	'PLAY'   => [ { 'channel' => 1, 'value' => 64,  'time' => 500 }, { 'channel' => 2, 'value' => 32, 'time' => 500 } ],
+	'PAUSE'  => [ { 'channel' => 1, 'value' => 255, 'time' => 1000 }, { 'channel' => 2, 'value' => 192, 'time' => 10000 } ],
+	'MOTION' => [ { 'channel' => 1, 'value' => 255, 'time' => 1000 }, { 'channel' => 2, 'value' => 192, 'time' => 1000 } ],
 );
-my $TIMEOUT      = 300;    # Seconds
-my $NUM_CHANNELS = 2;
+my $TIMEOUT = 300;    # Seconds
 
 # App config
 my $SOCK_TIMEOUT = 5;
@@ -153,21 +152,21 @@ while (1) {
 	if ($stateLast ne $state) {
 		if ($DEBUG) {
 			print STDERR 'State: ' . $stateLast . ' => ' . $state . "\n";
-			for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
-				print STDERR 'Channel ' . ($i + 1) . ': ' . $DIM{$state}[$i]{'value'} . '@' . $DIM{$state}[$i]{'time'} . "\n";
+			foreach my $data (@{ $DIM{$state} }) {
+				print STDERR "\t" . $data->{'channel'} . ' => ' . $data->{'value'} . ' @ ' . $data->{'time'} . "\n";
 			}
 		}
 
 		# Send the dim command
 		my @values = ();
-		for (my $i = 0 ; $i < $NUM_CHANNELS ; $i++) {
-			dim($i + 1, $DIM{$state}[$i]{'time'}, $DIM{$state}[$i]{'value'});
-			push(@values, $DIM{$state}[$i]{'value'});
+		foreach my $data (@{ $DIM{$state} }) {
+			dim($data->{'channel'}, $data->{'time'}, $data->{'value'});
+			push(@values, $data->{'channel'} . ' => ' . $data->{'value'} . ' @ ' . $data->{'time'});
 		}
 
 		# Save the state and value to disk
 		my ($fh, $tmp) = tempfile($DATA_DIR . 'ROPE.XXXXXXXX', 'UNLINK' => 0);
-		print $fh 'State: ' . $state . "\nValue: " . join(',', @values) . "\n";
+		print $fh 'State: ' . $state . "\nValues: " . join("\n", @values) . "\n";
 		close($fh);
 		rename($tmp, $DATA_DIR . 'ROPE');
 	}
