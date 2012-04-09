@@ -8,18 +8,23 @@
 #define SLEEP_DELAY 250000
 #define TIMEOUT 2
 
-//#define DEBUG
+#define DEBUG
 
 // Prototypes
 void timeout(int sig);
+USBmX_DeviceRef init();
+unsigned char readDev(USBmX_DeviceRef dev);
+
+// Globals
+USBmX_ContextRef ctx;
 
 int main(int argc, const char * argv[])
 {
+	USBmX_DeviceRef device;
 	int fd;
 	size_t len;
-	char *outfile, *datadir;
+	char *datadir, *outfile;
 	struct stat statbuf;
-	unsigned char data;
 
 	// Construct the output file path
 	len = confstr(_CS_DARWIN_USER_TEMP_DIR, NULL, (size_t) 0);
@@ -54,32 +59,16 @@ int main(int argc, const char * argv[])
 		}
 	}
 
-	// Grab a USBmicroX context
-	USBmX_ContextRef ctx = USBmX_Create();
-	USBmX_Begin(ctx);
-	
-	// Find the specified device
-	USBmX_DeviceRef device = USBmX_DeviceWithSerial(ctx, SERIAL);
-	if (!device) {
-		fprintf(stderr, "Device not found: %s\n", SERIAL);
-		exit(1);
-	}
-	
-	// Monitor for USB timeouts
+	// Monitor for alarms
 	signal(SIGALRM, timeout);
 
+	// Setup the USB device
+	device = init(SERIAL);
+	
 	// Read forever
 	while (1) {
-		// Read from the device
-		alarm(TIMEOUT);
-		if (USBmX_ReadA(device, &data) != 0) {
-			fprintf(stderr, "Device read error\n");
-			exit(1);
-		}
-		alarm(0);
-		
-		// Pin A5 is high when we've got motion
-		if (data & 0x20) {
+		// If we detected motion
+		if (readDev(device)) {
 			#ifdef DEBUG
 			printf("Motion detected\n");
 			#endif
@@ -93,15 +82,15 @@ int main(int argc, const char * argv[])
 			#ifdef DEBUG
 			printf("\n");
 			#endif
-		}
-		
-		// Sleep and loop
+		}	
+
+		// Delay and loop
 		usleep(SLEEP_DELAY);
 	}
 	
-	// Cleanup
+	// Cleanup (we never get here)
 	USBmX_Destroy(ctx);
-    return 0;
+	return 0;
 }
 
 // Catch the timeout
@@ -109,4 +98,46 @@ void timeout(int sig) {
 	signal(sig, SIG_IGN);
 	fprintf(stderr, "Timeout waiting for USB read\n");
 	exit(1);
+}
+
+// Setup the USBMicro context and build refs to our specified devices
+USBmX_DeviceRef init(const char *serial) {
+	USBmX_DeviceRef device;
+
+	// Create a new USBmicroX context as needed
+	if (!ctx) {
+		ctx = USBmX_Create();
+		USBmX_Begin(ctx);
+	}
+
+	// Find the specified device
+	device = USBmX_DeviceWithSerial(ctx, serial);
+	if (!device) {
+		fprintf(stderr, "Device not found: %s\n", serial);
+		exit(1);
+	}
+
+	// Return device handles
+	return device;
+}
+
+// Read
+unsigned char readDev(USBmX_DeviceRef dev) {
+	unsigned char data = 0x00;
+
+	// Enable the timeout
+	alarm(TIMEOUT);
+
+	// Read from the device
+	if (USBmX_ReadA(dev, &data) != 0) {
+		fprintf(stderr, "Device read error\n");
+		exit(1);
+	}
+
+	READDEV_RETURN:
+	// Clear the timeout
+	alarm(0);
+
+	// Return pin A5
+	return (data & 0x20);
 }
