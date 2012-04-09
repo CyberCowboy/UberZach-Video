@@ -8,7 +8,7 @@
 #define SLEEP_DELAY 250000
 #define TIMEOUT 2
 
-#define DEBUG
+//#define DEBUG
 
 // Prototypes
 void timeout(int sig);
@@ -26,7 +26,7 @@ int main(int argc, const char * argv[])
 	char *datadir, *outfile;
 	struct stat statbuf;
 
-	// Construct the output file path
+	// Construct the data directory and output file paths
 	len = confstr(_CS_DARWIN_USER_TEMP_DIR, NULL, (size_t) 0);
 	len += sizeof(DATA_DIR);
 	datadir = malloc(len);
@@ -40,7 +40,7 @@ int main(int argc, const char * argv[])
 	strlcpy(outfile, datadir, len);
 	strlcat(outfile, OUT_FILE, len + sizeof(OUT_FILE));
 
-	// Create the datadir and outfile as needed
+	// Create the datadir as needed
 	stat(datadir, &statbuf);
 	if (!S_ISDIR(statbuf.st_mode)) {
 		fprintf(stderr, "Creating data directory: %s\n", datadir);
@@ -49,6 +49,8 @@ int main(int argc, const char * argv[])
 			exit(1);
 		}
 	}
+
+	// Create the output file as needed
 	stat(outfile, &statbuf);
 	if(!S_ISREG(statbuf.st_mode)) {
 		fprintf(stderr, "Creating output file: %s\n", outfile);
@@ -121,7 +123,7 @@ USBmX_DeviceRef init(const char *serial) {
 	return device;
 }
 
-// Read
+// Read the specified USBMicro device
 unsigned char readDev(USBmX_DeviceRef dev) {
 	unsigned char data = 0x00;
 
@@ -134,7 +136,6 @@ unsigned char readDev(USBmX_DeviceRef dev) {
 		exit(1);
 	}
 
-	READDEV_RETURN:
 	// Clear the timeout
 	alarm(0);
 
