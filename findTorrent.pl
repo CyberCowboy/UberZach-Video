@@ -88,6 +88,9 @@ if (defined($search) && length($search) > 0) {
 
 	# Note the custom search string
 	$CUSTOM_SEARCH = 1;
+	if ($DEBUG) {
+		print STDERR "Custom search\n"
+	}
 
 	# Create the relevent search strings
 	foreach my $key (keys(%SOURCES)) {
@@ -228,12 +231,12 @@ if (defined($search) && length($search) > 0) {
 	my $safeShow = $show;
 	$safeShow =~ s/\s+\&\s+/ and /i;
 	$safeShow =~ s/^\s*The\b//i;
-	$safeShow =~ s/[\W_]+/ /g;
+	$safeShow =~ s/[^\w\"]+/ /g;
 	$safeShow =~ s/^\s+//;
 	$safeShow =~ s/\s+$//;
 	$safeShow =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
 	$safeShow =~ s/\%20/\+/g;
-
+	
 	# Calculate possible name variations
 	my @urlShowVarients = ();
 	{
@@ -476,6 +479,7 @@ foreach my $json (@json_content) {
 # Filter for size/count/etc.
 my %tors      = ();
 my $showRegex = $show;
+$showRegex =~ s/\"//g;
 $showRegex =~ s/[\W_]+/\[\\W_\].*/g;
 foreach my $tor (@tors) {
 
