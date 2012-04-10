@@ -36,7 +36,7 @@ if ($ENV{'MORE_NUMBER_FORMATS'}) {
 my $DELAY            = 4;
 my $MIN_COUNT        = 10;
 my $MIN_SIZE         = 100;
-my $SIZE_BONUS       = 5;
+my $SIZE_BONUS       = 10;
 my $SIZE_PENALTY     = $SIZE_BONUS;
 my $MAX_SEED_RATIO   = .25;
 my $SEED_RATIO_COUNT = 10;
