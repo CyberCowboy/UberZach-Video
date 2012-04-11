@@ -145,7 +145,10 @@ foreach my $tor (@{$torrents}) {
 				push(@files, $file);
 			}
 			if (scalar(@files) != 1) {
-				print STDERR 'Unable to find a media file in: ' . $path . "\n";
+				print STDERR 'Did not find exactly 1 media file in: ' . $path . "\n";
+				foreach my $fn (@files) {
+					print STDERR "\t" . $fn . "\n";
+				}
 				next;
 			}
 			$file = $files[0];
