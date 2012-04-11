@@ -47,6 +47,30 @@ if (basename($0) =~ /PROJECTOR/i) {
 
 	);
 	$STATUS_ON = 'PWON';
+} elsif (basename($0) =~ /TV/i) {
+	$DEV       = 'TV';
+	$PORT      = '/dev/tty.TV-DevB';
+	$CRLF      = "\r";
+	$DELIMITER = "\r";
+	%CMDS      = (
+		'INIT'      => 'RSPW1',
+		'ON'        => 'POWR1',
+		'OFF'       => 'POWR0',
+		'STATUS'    => 'POWR?',
+		'VOL+'      => 'MVUP',
+		'VOL-'      => 'MVDOWN',
+		'MUTE'      => 'MUTE1',
+		'UNMUTE'    => 'MUTE2',
+		'TV'        => 'IAVD0',
+		'PLEX'      => 'IAVD7',
+		'VOL_CHECK' => 'VOLM?',
+		'VOL6'      => 'VOLM6',
+		'VOL12'     => 'VOLM12',
+		'VOL24'     => 'VOLM24',
+		'VOL+'      => 'VOLM',
+		'VOL-'      => 'VOLM'
+	);
+	$STATUS_ON = '1';
 } else {
 	die("No device specified\n");
 }
