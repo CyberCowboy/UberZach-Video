@@ -15,8 +15,8 @@ sub collectUntil($$);
 # Device parameters
 my ($DEV, $PORT, $CRLF, $DELIMITER, %CMDS, $STATUS_ON);
 if (basename($0) =~ /PROJECTOR/i) {
-	$DEV       = 'PROJECTOR';
-	$PORT      = '/dev/tty.Projector-DevB';
+	$DEV       = 'Projector';
+	$PORT      = '/dev/tty.' . $DEV . '-DevB';
 	$CRLF      = "\r\n";
 	$DELIMITER = ':';
 	%CMDS      = (
@@ -27,8 +27,8 @@ if (basename($0) =~ /PROJECTOR/i) {
 	);
 	$STATUS_ON = 'PWR=01';
 } elsif (basename($0) =~ /AMPLIFIER/i) {
-	$DEV       = 'AMPLIFIER';
-	$PORT      = '/dev/tty.Amplifier-DevB';
+	$DEV       = 'Amplifier';
+	$PORT      = '/dev/tty.' . $DEV . '-DevB';
 	$CRLF      = "\r";
 	$DELIMITER = "\r";
 	%CMDS      = (
@@ -49,7 +49,7 @@ if (basename($0) =~ /PROJECTOR/i) {
 	$STATUS_ON = 'PWON';
 } elsif (basename($0) =~ /TV/i) {
 	$DEV       = 'TV';
-	$PORT      = '/dev/tty.TV-DevB';
+	$PORT      = '/dev/tty.' . $DEV . '-DevB';
 	$CRLF      = "\r";
 	$DELIMITER = "\r";
 	%CMDS      = (
@@ -80,10 +80,11 @@ my $DELAY_STATUS    = 5;
 my $BYTE_TIMEOUT    = 50;
 my $SILENCE_TIMEOUT = $BYTE_TIMEOUT * 10;
 my $MAX_CMD_LEN     = 1024;
+my $BT_CHECK        = $ENV{'HOME'} . '/bin/btcheck';
 my $TEMP_DIR        = `getconf DARWIN_USER_TEMP_DIR`;
 chomp($TEMP_DIR);
 my $DATA_DIR = $TEMP_DIR . 'plexMonitor/';
-my $CMD_FILE = $DATA_DIR . $DEV . '.socket';
+my $CMD_FILE = $DATA_DIR . uc($DEV) . '.socket';
 
 # Debug
 my $DEBUG = 0;
@@ -100,6 +101,13 @@ if (!$DELAY) {
 # Sanity check
 if (!-r $PORT || !-d $DATA_DIR) {
 	die("Bad config\n");
+}
+
+# Wait for the serial port to become available
+system($BT_CHECK, $DEV);
+if ($? != 0) {
+	sleep($DELAY_STATUS);
+	die('Bluetooth device "' . $DEV . "\" not available\n");
 }
 
 # Socket init
@@ -189,12 +197,12 @@ while (1) {
 		# If something has changed, save the state to disk
 		if ($powerLast != $power) {
 			if ($DEBUG) {
-				print STDERR 'New ' . $DEV . ' power state: ' . $power . "\n";
+				print STDERR 'New ' . uc($DEV) . ' power state: ' . $power . "\n";
 			}
-			my ($fh, $tmp) = tempfile($DATA_DIR . $DEV . '.XXXXXXXX', 'UNLINK' => 0);
+			my ($fh, $tmp) = tempfile($DATA_DIR . uc($DEV) . '.XXXXXXXX', 'UNLINK' => 0);
 			print $fh $power . "\n";
 			close($fh);
-			rename($tmp, $DATA_DIR . $DEV);
+			rename($tmp, $DATA_DIR . uc($DEV));
 		}
 	}
 }
