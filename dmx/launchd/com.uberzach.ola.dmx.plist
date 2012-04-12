@@ -14,8 +14,11 @@
 	<string>com.uberzach.ola.dmx</string>
 	<key>KeepAlive</key>
 	<dict>
-		<key>NetworkState</key>
-		<true/>
+		<key>OtherJobEnabled</key>
+		<dict>
+			<key>com.uberzach.ola</key>
+			<true/>
+		</dict>
 	</dict>
 	<key>ProgramArguments</key>
 	<array>

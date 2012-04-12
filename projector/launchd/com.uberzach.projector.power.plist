@@ -11,11 +11,14 @@
 	<key>RunAtLoad</key>
 	<true/>
 	<key>Label</key>
-	<string>com.uberzach.projector.off</string>
+	<string>com.uberzach.projector.power</string>
 	<key>KeepAlive</key>
 	<dict>
-		<key>NetworkState</key>
-		<true/>
+		<key>OtherJobEnabled</key>
+		<dict>
+			<key>com.uberzach.projector</key>
+			<true/>
+		</dict>
 	</dict>
 	<key>ProgramArguments</key>
 	<array>

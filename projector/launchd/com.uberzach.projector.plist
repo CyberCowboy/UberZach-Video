@@ -14,8 +14,11 @@
 	<string>com.uberzach.projector</string>
 	<key>KeepAlive</key>
 	<dict>
-		<key>NetworkState</key>
-		<true/>
+		<key>PathState</key>
+		<dict>
+			<key>/dev/tty.Projector-DevB</key>
+			<true/>
+		</dict>
 	</dict>
 	<key>ProgramArguments</key>
 	<array>

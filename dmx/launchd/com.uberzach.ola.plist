@@ -11,11 +11,14 @@
 	<key>RunAtLoad</key>
 	<true/>
 	<key>Label</key>
-	<string>com.uberzach.olad</string>
+	<string>com.uberzach.ola</string>
 	<key>KeepAlive</key>
 	<dict>
-		<key>NetworkState</key>
-		<true/>
+		<key>PathState</key>
+		<dict>
+			<key>/dev/tty.usbserial-EN099597</key>
+			<true/>
+		</dict>
 	</dict>
 	<key>ProgramArguments</key>
 	<array>

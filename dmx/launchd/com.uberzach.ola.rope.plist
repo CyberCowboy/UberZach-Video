@@ -14,8 +14,13 @@
 	<string>com.uberzach.ola.rope</string>
 	<key>KeepAlive</key>
 	<dict>
-		<key>NetworkState</key>
-		<true/>
+		<key>OtherJobEnabled</key>
+		<dict>
+			<key>com.uberzach.ola.dmx</key>
+			<true/>
+			<key>com.uberzach.projector</key>
+			<true/>
+		</dict>
 	</dict>
 	<key>ProgramArguments</key>
 	<array>
