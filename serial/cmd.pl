@@ -18,7 +18,7 @@ if ($ENV{'DEBUG'}) {
 
 # Command-line parameters
 my ($DEV, $CMD) = @ARGV;
-my $CMD_FILE = $DATA_DIR . $DEV . '.socket';
+my $CMD_FILE = $DATA_DIR . uc($DEV) . '.socket';
 
 # Sanity check
 if (!-d $DATA_DIR || !-S $CMD_FILE) {
