@@ -4,8 +4,8 @@
 
 #define DATA_DIR "plexMonitor/"
 #define OUT_FILE "MOTION"
-#define NUM_DEVICES 1
-#define SERIALS { "101128160542" }
+#define NUM_DEVICES 2
+#define SERIALS { "101128160542", "101128155210" }
 #define SLEEP_DELAY 250000
 #define TIMEOUT 2
 
