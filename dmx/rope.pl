@@ -166,7 +166,7 @@ while (1) {
 
 		# Save the state and value to disk
 		my ($fh, $tmp) = tempfile($DATA_DIR . 'ROPE.XXXXXXXX', 'UNLINK' => 0);
-		print $fh 'State: ' . $state . "\nValues: " . join("\n", @values) . "\n";
+		print $fh 'State: ' . $state . "\n" . join("\n", @values) . "\n";
 		close($fh);
 		rename($tmp, $DATA_DIR . 'ROPE');
 	}
