@@ -15,16 +15,16 @@ sub dim($$$);
 #	2 => Couch-side exposed
 #	3 => Stairs
 #	4 => <Unused>
-#	5 => Bar-side hidden
-#	6 => Bar-side exposed
+#	5 => Bar-side bar-floor
+#	6 => Bar-side bar-shelves
 #	7 => Bar-side ceiling
-#	8 => <Unused>
+#	8 => Bar-side wall
 
 # User config
 my %DIM = (
 	'OFF'    => [ { 'channel' => 0, 'value' => 0,   'time' => 60000 } ],
 	'PLAY'   => [ { 'channel' => 1, 'value' => 64,  'time' => 500 }, { 'channel' => 2, 'value' => 32, 'time' => 500 }, { 'channel' => 3, 'value' => 192, 'time' => 1000 }, { 'channel' => 5, 'value' => 64, 'time' => 500 }, { 'channel' => 6, 'value' => 32, 'time' => 500 } ],
-	'PAUSE'  => [ { 'channel' => 1, 'value' => 255, 'time' => 1000 }, { 'channel' => 2, 'value' => 192, 'time' => 10000 }, { 'channel' => 3, 'value' => 192, 'time' => 1000 }, { 'channel' => 5, 'value' => 255, 'time' => 1000 }, { 'channel' => 6, 'value' => 192, 'time' => 10000 } ],
+	'PAUSE'  => [ { 'channel' => 1, 'value' => 255, 'time' => 1000 }, { 'channel' => 2, 'value' => 192, 'time' => 10000 }, { 'channel' => 3, 'value' => 192, 'time' => 1000 }, { 'channel' => 5, 'value' => 255, 'time' => 1000 }, { 'channel' => 6, 'value' => 255, 'time' => 10000 } ],
 	'MOTION' => [ { 'channel' => 1, 'value' => 255, 'time' => 1000 }, { 'channel' => 2, 'value' => 192, 'time' => 1000 }, { 'channel' => 3, 'value' => 192, 'time' => 1000 }, { 'channel' => 5, 'value' => 192, 'time' => 1000 }, { 'channel' => 6, 'value' => 192, 'time' => 1000 } ],
 );
 my $TIMEOUT = 300;    # Seconds
