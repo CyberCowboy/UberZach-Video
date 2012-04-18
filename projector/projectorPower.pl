@@ -48,21 +48,21 @@ while (1) {
 
 	# Monitor the GUI and PLAYING files for changes only
 	{
-		my $mtime = mtime($DATA_DIR . '/PLAYING');
+		my $mtime = mtime($DATA_DIR . 'PLAYING');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
-		$mtime = mtime($DATA_DIR . '/GUI');
+		$mtime = mtime($DATA_DIR . 'GUI');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
 	}
 
-	# Monitor the PROJECTOR file for state only
+	# Monitor the PROJECTOR file for state and changes
 	{
 		$projector = 0;
 		my $fh;
-		open($fh, $DATA_DIR . '/PROJECTOR')
+		open($fh, $DATA_DIR . 'PROJECTOR')
 		  or die("Unable to open PROJECTOR\n");
 		my $text = <$fh>;
 		close($fh);
@@ -71,6 +71,11 @@ while (1) {
 		}
 		if ($DEBUG) {
 			print STDERR 'Projector: ' . $projector . "\n";
+		}
+
+		$mtime = mtime($DATA_DIR . 'PROJECTOR');
+		if ($mtime > $updateLast) {
+			$updateLast = $mtime;
 		}
 	}
 
