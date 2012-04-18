@@ -27,7 +27,7 @@ my %DIM = (
 	'PAUSE'  => [ { 'channel' => 1, 'value' => 255, 'time' => 1000 }, { 'channel' => 2, 'value' => 192, 'time' => 10000 }, { 'channel' => 3, 'value' => 192, 'time' => 1000 }, { 'channel' => 5, 'value' => 255, 'time' => 1000 }, { 'channel' => 6, 'value' => 64, 'time' => 8000 } ],
 	'MOTION' => [ { 'channel' => 1, 'value' => 255, 'time' => 1000 }, { 'channel' => 2, 'value' => 192, 'time' => 1000 }, { 'channel' => 3, 'value' => 192, 'time' => 1000 }, { 'channel' => 5, 'value' => 192, 'time' => 1000 }, { 'channel' => 6, 'value' => 72, 'time' => 1000 } ],
 );
-my $TIMEOUT = 300;    # Seconds
+my $TIMEOUT = 240;    # Seconds
 
 # App config
 my $SOCK_TIMEOUT = 5;
