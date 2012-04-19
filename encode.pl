@@ -283,7 +283,7 @@ sub audioOptions($) {
 			} elsif ($code eq 'OTHER') {
 				if ($codec =~ /MP3/i || $codec =~ /MPEG/i) {
 					$codec = $code;
-				} elsif ($codec eq 'dca') {
+				} elsif ($codec eq 'truehd' || $codec eq 'dca') {
 					print STDERR 'Found incompatible audio (' . $track->{'description'} . ')  in track ' . $track->{'index'} . "\n";
 					$codec = undef();
 				} else {
