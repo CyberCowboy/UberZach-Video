@@ -73,7 +73,7 @@ while (1) {
 			print STDERR 'Projector: ' . $projector . "\n";
 		}
 
-		$mtime = mtime($DATA_DIR . 'PROJECTOR');
+		my $mtime = mtime($DATA_DIR . 'PROJECTOR');
 		if ($mtime > $updateLast) {
 			$updateLast = $mtime;
 		}
