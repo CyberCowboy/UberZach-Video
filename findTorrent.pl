@@ -231,7 +231,7 @@ if (defined($search) && length($search) > 0) {
 	my $safeShow = $show;
 	$safeShow =~ s/\s+\&\s+/ and /i;
 	$safeShow =~ s/^\s*The\b//i;
-	$safeShow =~ s/[^\w\"]+/ /g;
+	$safeShow =~ s/[^\w\"\-]+/ /g;
 	$safeShow =~ s/^\s+//;
 	$safeShow =~ s/\s+$//;
 	$safeShow =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
