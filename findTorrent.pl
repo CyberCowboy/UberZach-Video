@@ -231,6 +231,7 @@ if (defined($search) && length($search) > 0) {
 	my $safeShow = $show;
 	$safeShow =~ s/\s+\&\s+/ and /i;
 	$safeShow =~ s/^\s*The\b//i;
+	$safeShow =~ s/\'//g;
 	$safeShow =~ s/[^\w\"\-]+/ /g;
 	$safeShow =~ s/^\s+//;
 	$safeShow =~ s/\s+$//;
@@ -479,7 +480,7 @@ foreach my $json (@json_content) {
 # Filter for size/count/etc.
 my %tors      = ();
 my $showRegex = $show;
-$showRegex =~ s/\"//g;
+$showRegex =~ s/[\"\']//g;
 $showRegex =~ s/[\W_]+/\[\\W_\].*/g;
 foreach my $tor (@tors) {
 
