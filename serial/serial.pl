@@ -42,7 +42,7 @@ if (basename($0) =~ /PROJECTOR/i) {
 		'UNMUTE'   => 'MUOFF',
 		'TV'       => 'SITV',
 		'DVD'      => 'SIDVD',
-		'SURROUND' => 'MSDOLBY SURROUND',
+		'SURROUND' => 'MSDOLBY DIGITAL',
 		'STEREO'   => 'MS7CH STEREO',
 
 	);
