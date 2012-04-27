@@ -28,7 +28,7 @@ my %DIM = (
 	'PLAY'   => [
 		{ 'channel' => 1, 'value' => 64,  'time' => 500   },
 		{ 'channel' => 2, 'value' => 32,  'time' => 500   },
-		{ 'channel' => 3, 'value' => 192, 'time' => 1000  },
+		{ 'channel' => 3, 'value' => 112, 'time' => 1000  },
 		{ 'channel' => 5, 'value' => 64,  'time' => 500   },
 		{ 'channel' => 6, 'value' => 48,  'time' => 500   },
 		{ 'channel' => 7, 'value' => 32,  'time' => 500   },
