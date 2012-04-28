@@ -23,34 +23,34 @@ sub dim($$$);
 # User config
 my %DIM = (
 	'OFF'    => [
-		{ 'channel' => 0, 'value' => 0,   'time' => 60000  }
+		{ 'channel' => 0, 'value' => 0,   'time' => 60000 }
 	],
 	'PLAY'   => [
-		{ 'channel' => 1, 'value' => 64,  'time' => 500  },
-		{ 'channel' => 2, 'value' => 32,  'time' => 500  },
-		{ 'channel' => 3, 'value' => 80,  'time' => 1500 },
-		{ 'channel' => 5, 'value' => 64,  'time' => 500  },
-		{ 'channel' => 6, 'value' => 48,  'time' => 500  },
-		{ 'channel' => 7, 'value' => 32,  'time' => 500  },
-		{ 'channel' => 8, 'value' => 16,  'time' => 500  },
+		{ 'channel' => 1, 'value' => 64,  'time' => 500   },
+		{ 'channel' => 2, 'value' => 32,  'time' => 500   },
+		{ 'channel' => 3, 'value' => 80,  'time' => 1500  },
+		{ 'channel' => 5, 'value' => 64,  'time' => 500   },
+		{ 'channel' => 6, 'value' => 36,  'time' => 500   },
+		{ 'channel' => 7, 'value' => 32,  'time' => 500   },
+		{ 'channel' => 8, 'value' => 16,  'time' => 500   },
 	],
 	'PAUSE'  => [
 		{ 'channel' => 1, 'value' => 255, 'time' => 1000  },
 		{ 'channel' => 2, 'value' => 192, 'time' => 10000 },
 		{ 'channel' => 3, 'value' => 192, 'time' => 5000  },
 		{ 'channel' => 5, 'value' => 255, 'time' => 1000  },
-		{ 'channel' => 6, 'value' => 112, 'time' => 14000 },
+		{ 'channel' => 6, 'value' => 104, 'time' => 13000 },
 		{ 'channel' => 7, 'value' => 192, 'time' => 10000 },
-		{ 'channel' => 8, 'value' => 88,  'time' => 18000 },
+		{ 'channel' => 8, 'value' => 92,  'time' => 18000 },
 	],
 	'MOTION' => [
 		{ 'channel' => 1, 'value' => 255, 'time' => 1000  },
 		{ 'channel' => 2, 'value' => 192, 'time' => 1000  },
 		{ 'channel' => 3, 'value' => 192, 'time' => 1000  },
 		{ 'channel' => 5, 'value' => 192, 'time' => 1000  },
-		{ 'channel' => 6, 'value' => 112, 'time' => 1000  },
+		{ 'channel' => 6, 'value' => 104, 'time' => 1000  },
 		{ 'channel' => 7, 'value' => 192, 'time' => 1000  },
-		{ 'channel' => 8, 'value' => 88,  'time' => 1000  },
+		{ 'channel' => 8, 'value' => 92,  'time' => 1000  },
 	],
 );
 my $TIMEOUT = 180;
