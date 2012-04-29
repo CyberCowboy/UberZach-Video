@@ -35,10 +35,10 @@ my %DIM = (
 		{ 'channel' => 8, 'value' => 16,  'time' => 500   },
 	],
 	'PLAY_HIGH' => [
-		{ 'channel' => 1, 'value' => 192, 'time' => 500   },
+		{ 'channel' => 1, 'value' => 255, 'time' => 500   },
 		{ 'channel' => 2, 'value' => 128, 'time' => 500   },
 		{ 'channel' => 3, 'value' => 192, 'time' => 1500  },
-		{ 'channel' => 5, 'value' => 192, 'time' => 500   },
+		{ 'channel' => 5, 'value' => 128, 'time' => 500   },
 		{ 'channel' => 6, 'value' => 36,  'time' => 500   },
 		{ 'channel' => 7, 'value' => 128, 'time' => 500   },
 		{ 'channel' => 8, 'value' => 16,  'time' => 500   },
