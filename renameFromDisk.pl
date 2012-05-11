@@ -22,6 +22,9 @@ if (!$host || !$user || !$pass || (!$section && !$series)) {
 }
 
 # Globals
+if (!($host =~ /\:\d+$/)) {
+	$host .= ':32400';
+}
 my $baseURL = 'http://' . $host;
 my $auth    = 'X-Plex-User=' . $user . '&X-Plex-Pass=' . $pass;
 my $xml     = new XML::Simple;
