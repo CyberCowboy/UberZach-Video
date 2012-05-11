@@ -21,6 +21,7 @@ sub delTor($);
 sub guessExt($);
 sub processFile($$);
 sub unrar($$);
+sub localSeriesCleanup($);
 sub seriesCleanup($);
 sub readDir($$);
 
@@ -277,7 +278,7 @@ sub getDest($$$$) {
 	while (<SHOWS>) {
 		chomp;
 		my $orig  = $_;
-		my $clean = seriesCleanup($_);
+		my $clean = localSeriesCleanup($_);
 		push(@shows, $clean);
 		$showsCan{$clean} = $orig;
 	}
@@ -563,6 +564,12 @@ sub unrar($$) {
 
 	# Return the list of added files
 	return @newFiles;
+}
+
+sub localSeriesCleanup($) {
+	my ($name) = @_;
+	$name =~ s/\.//g;
+	return seriesCleanup($name);
 }
 
 sub seriesCleanup($) {
