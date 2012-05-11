@@ -120,7 +120,7 @@ if (defined($search) && length($search) > 0) {
 
 	# Get and clean the show name
 	$show = basename(dirname($dir));
-	$show =~ s/[\'\"]//g;
+	$show =~ s/[\'\"\.]//g;
 
 	# Allow the show name to be overriden
 	{
