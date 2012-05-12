@@ -38,7 +38,7 @@ fi
 
 # Find large video files
 # Later tests exclude Handbrake-encoded files
-FILES="`find "${FOLDER}" -maxdepth 1 -size "+${MIN_SIZE}" | grep -iE "${NAME_REGEX}"`"
+FILES="`find "${FOLDER}" -type f -maxdepth 1 -size "+${MIN_SIZE}" | grep -iE "${NAME_REGEX}"`"
 
 # Loop with newline-as-IFS
 OLDIFS="${IFS}"
