@@ -576,7 +576,7 @@ sub seriesCleanup($) {
 	my ($name) = @_;
 	$name =~ s/\b(?:and|\&)\b/ /ig;
 	$name =~ s/^\s*The\b//ig;
-	if (!($name =~ /Being\W+Human/i)) {
+	if (!($name =~ /Being\W+Human/i) && !($name =~ /Top\W+Gear/i)) {
 		$name =~ s/\bUS\b?\s*$//ig;
 		$name =~ s/\([^\)]*\)//g;
 	}
