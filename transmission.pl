@@ -9,7 +9,6 @@ use File::Temp qw/ :mktemp /;
 use File::Basename;
 use FindBin qw($Bin);
 use lib $Bin;
-use Run;
 use Fetch;
 
 # Prototypes
@@ -641,4 +640,24 @@ sub readDir($$) {
 
 	# Return the file list
 	return (@orderedFiles);
+}
+
+sub runAndCheck(@) {
+	my (@args) = (@_);
+
+	# Run
+	system { $args[0] } @args;
+	my $res = $?;
+
+	# Die on any error
+	if ($res == -1) {
+		die('Unable to execute program: ' . join(' ', @args) . ': ' . $! . "\n");
+	} elsif ($res & 127) {
+		die('Child exited on signal: ' . join(' ', @args) . ': ' . ($res & 127) . "\n");
+	} elsif ($res != 0) {
+		die('Child exited with non-zero value: ' . join(' ', @args) . ': ' . ($res >> 8) . "\n");
+	}
+
+	# If we get here, all is well
+	return 1;
 }
