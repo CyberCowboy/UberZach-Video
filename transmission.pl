@@ -23,6 +23,7 @@ sub unrar($$);
 sub localSeriesCleanup($);
 sub seriesCleanup($);
 sub readDir($$);
+sub runAndCheck(@);
 
 # Parameters
 my $maxAge        = 2.5 * 86400;
@@ -511,7 +512,7 @@ sub processFile($$) {
 
 	# Copy with system tools
 	my $tmp = mktemp($dest . '.XXXXXXXX');
-	Run::runAndCheck(('cp', $file, $tmp));
+	runAndCheck(('cp', $file, $tmp));
 	rename($tmp, $dest);
 
 	# Return success
