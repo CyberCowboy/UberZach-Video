@@ -209,7 +209,7 @@ while (1) {
 		my $timeSinceUpdate = time() - $updateLast;
 		if ($state ne 'OFF' && $timeSinceUpdate > $TIMEOUT) {
 			$state = 'OFF';
-		} elsif ($state eq 'OFF' && $timeSinceUpdate < $TIMEOUT) {
+		} elsif ($timeSinceUpdate < $TIMEOUT) {
 			$state = 'MOTION';
 		}
 	}
