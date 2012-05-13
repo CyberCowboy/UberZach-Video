@@ -207,7 +207,7 @@ while (1) {
 
 		# If the projector is off, check the timeouts
 		my $timeSinceUpdate = time() - $updateLast;
-		if ($state ne 'OFF' && $timeSinceUpdate > $TIMEOUT) {
+		if ($timeSinceUpdate > $TIMEOUT) {
 			$state = 'OFF';
 		} elsif ($timeSinceUpdate < $TIMEOUT) {
 			$state = 'MOTION';
