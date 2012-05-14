@@ -96,11 +96,11 @@ for my $BASE_DIR (@BASE_DIRS) {
 }
 
 # Print results
-if ($prg =~ /NULL/i) {
+if ($prg && $prg =~ /NULL/i) {
 	foreach my $show (@monitored) {
 		print $show . "\0";
 	}
-} elsif ($prg =~ /STORE/i) {
+} elsif ($prg && $prg =~ /STORE/i) {
 	my %shows = ();
 	foreach my $show (@monitored) {
 		$shows{ basename(dirname($show)) } = 1;

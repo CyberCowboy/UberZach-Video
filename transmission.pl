@@ -297,7 +297,7 @@ sub getDest($$$$) {
 			$course_match = 1;
 		} else {
 			my $search_name = '';
-			my $file = $tvDir . '/' . $showsCan{$show} . '/search_name';
+			my $file        = $tvDir . '/' . $showsCan{$show} . '/search_name';
 			if (-e $file) {
 				open(FH, $file)
 				  or die('Unable to read search_name file: ' . $file . "\n");
