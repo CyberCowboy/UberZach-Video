@@ -291,7 +291,30 @@ sub getDest($$$$) {
 
 	foreach my $show (@shows) {
 
+		# Match the folder name or the search_name
+		my $course_match = 0;
 		if ($show =~ /${sMatch}/i) {
+			$course_match = 1;
+		} else {
+			my $search_name = '';
+			my $file = $tvDir . '/' . $showsCan{$show} . '/search_name';
+			if (-e $file) {
+				open(FH, $file)
+				  or die('Unable to read search_name file: ' . $file . "\n");
+				$search_name = <FH>;
+				close(FH);
+			}
+			if ($search_name) {
+				$search_name =~ s/^\s+//;
+				$search_name =~ s/\s+$//;
+				if ($search_name =~ /${sMatch}/i) {
+					$course_match = 1;
+				}
+			}
+		}
+
+		# If we got a course match, continue checking
+		if ($course_match) {
 
 			# Enforce any secondary matching rules (for ambiguous titles)
 			my $detail_match = 1;
