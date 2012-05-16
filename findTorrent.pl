@@ -425,7 +425,7 @@ foreach my $tr (@trs) {
 	# Extract the size
 	my $size = 0;
 	my $unit = 'M';
-	if ($tr =~ m/(\d+\.\d+)\&nbsp\;(G|M)iB\<\/[tT][dD]\>/) {
+	if ($tr =~ m/(\d+(?:\.\d+)?)\&nbsp\;(G|M)iB\<\/[tT][dD]\>/) {
 		$size = $1;
 		$unit = $2;
 		if ($unit eq 'G') {
