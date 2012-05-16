@@ -422,15 +422,18 @@ foreach my $tr (@trs) {
 		$leaches = $2;
 	}
 
-	# Extract the size
+	# Extract the size (from separate column or inline)
 	my $size = 0;
 	my $unit = 'M';
-	if ($tr =~ m/(\d+(?:\.\d+)?)\&nbsp\;(G|M)iB\<\/[tT][dD]\>/) {
+	if ($tr =~ m/Size (\d+(?:\.\d+)?)\&nbsp\;(G|M)iB/) {
 		$size = $1;
 		$unit = $2;
-		if ($unit eq 'G') {
-			$size *= 1024;
-		}
+	} elsif ($tr =~ m/(\d+(?:\.\d+)?)\&nbsp\;(G|M)iB\<\/[tT][dD]\>/) {
+		$size = $1;
+		$unit = $2;
+	}
+	if ($unit eq 'G') {
+		$size *= 1024;
 	}
 	$size = int($size);
 
