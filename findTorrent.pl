@@ -42,17 +42,46 @@ my $MAX_SEED_RATIO   = .25;
 my $SEED_RATIO_COUNT = 10;
 my $PROTOCOL         = 'http';
 my $UA               = 'Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10_5_5; en-us) AppleWebKit/525.18 (KHTML, like Gecko) Version/3.1.2 Safari/525.20.1';
+my $TIMEOUT          = 15;
+
+# New fetch object
+my $cookies = mktemp('/tmp/findTorrent.cookies.XXXXXXXX');
+my $fetch   = Fetch->new(
+	'cookiefile' => $cookies,
+	'timeout'    => $TIMEOUT,
+	'uas'        => $UA
+);
 
 # Search sources
 my %SOURCES = ();
 {
-	my %tmp = (
-		'search_url'    => 'thepiratebay.se/search/',
-		'search_suffix' => '/0/7/0',
-		'weight'        => 1.5,
-		'quote'         => '0'
-	);
-	$SOURCES{'TPB'} = \%tmp;
+
+	# Available TPB proxies, in order of preference
+	my @TPBs = ('thepiratebay.se/search/', 'tpb.jasohack.com/index.php?loadurl=/search/');
+
+	# Automatically select a TPB proxy
+	my $search_url = '';
+	foreach my $url (@TPBs) {
+		my ($host) = $url =~ /^([^\/]+)/;
+		$fetch->url($PROTOCOL . '://' . $host);
+		if ($fetch->fetch('nocheck' => 1) == 200) {
+			$search_url = $url;
+			last;
+		} elsif ($DEBUG) {
+			print STDERR 'TPB proxy not available: ' . $host . "\n";
+		}
+	}
+
+	# Only add TPB if one of the proxies is up
+	if ($search_url) {
+		my %tmp = (
+			'search_url'    => $search_url,
+			'search_suffix' => '/0/7/0',
+			'weight'        => 1.5,
+			'quote'         => '0'
+		);
+		$SOURCES{'TPB'} = \%tmp;
+	}
 }
 {
 	my %tmp = (
@@ -70,13 +99,6 @@ my %SOURCES = ();
 #	print STDERR `printenv` . "\n";
 #}
 
-# New fetch object
-my $cookies = mktemp('/tmp/findTorrent.cookies.XXXXXXXX');
-my $fetch   = Fetch->new(
-	'cookiefile' => $cookies,
-	'uas'        => $UA
-);
-
 # Get the season name
 my $show          = '';
 my @urls          = ();
@@ -89,7 +111,7 @@ if (defined($search) && length($search) > 0) {
 	# Note the custom search string
 	$CUSTOM_SEARCH = 1;
 	if ($DEBUG) {
-		print STDERR "Custom search\n"
+		print STDERR "Custom search\n";
 	}
 
 	# Create the relevent search strings
@@ -237,7 +259,7 @@ if (defined($search) && length($search) > 0) {
 	$safeShow =~ s/\s+$//;
 	$safeShow =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
 	$safeShow =~ s/\%20/\+/g;
-	
+
 	# Calculate possible name variations
 	my @urlShowVarients = ();
 	{
@@ -403,7 +425,7 @@ foreach my $tr (@trs) {
 	# Extract the size
 	my $size = 0;
 	my $unit = 'M';
-	if ($tr =~ m/ Size (\d+\.\d+)\&nbsp\;(G|M)iB/) {
+	if ($tr =~ m/(\d+\.\d+)\&nbsp\;(G|M)iB\<\/[tT][dD]\>/) {
 		$size = $1;
 		$unit = $2;
 		if ($unit eq 'G') {
