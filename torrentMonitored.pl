@@ -6,7 +6,7 @@ use warnings;
 use File::Basename;
 
 # Parameters
-my @BASE_DIRS = ('/mnt/media/TV', '/mnt/media/Download');
+my @BASE_DIRS = ('/home/bjames/remotesvr/Movies/Shows', '/home/bjames/Torrents');
 my @skipped   = ();
 my @monitored = ();
 my @done      = ();
