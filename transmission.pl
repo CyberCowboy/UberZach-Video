@@ -27,8 +27,8 @@ sub runAndCheck(@);
 
 # Parameters
 my $maxAge        = 2.5 * 86400;
-my $tvDir         = '/mnt/media/TV';
-my $monitoredExec = '/Users/profplump/bin/video/torrentMonitored.pl';
+my $tvDir         = '/home/bjames/remotesvr';
+my $monitoredExec = '/home/bjames/uberzach/torrentMonitored.pl';
 my $host          = 'http://localhost:9091';
 my $url           = $host . '/transmission/rpc';
 my $content       = '{"method":"torrent-get","arguments":{"fields":["hashString","id","addedDate","comment","creator","dateCreated","isPrivate","name","totalSize","pieceCount","pieceSize","downloadedEver","error","errorString","eta","haveUnchecked","haveValid","leftUntilDone","metadataPercentComplete","peersConnected","peersGettingFromUs","peersSendingToUs","rateDownload","rateUpload","recheckProgress","sizeWhenDone","status","trackerStats","uploadedEver","uploadRatio","seedRatioLimit","seedRatioMode","downloadDir","files","fileStats"]}}';
@@ -435,7 +435,7 @@ sub guessExt($) {
 	# Ask movInfo.pl about the demuxer
 	if (!$ext) {
 		my $demux = '';
-		open(INFO, '-|', $ENV{'HOME'} . '/bin/video/movInfo.pl', $file, 'DEMUXER');
+		open(INFO, '-|', $ENV{'HOME'} . '/uberzach/movInfo.pl', $file, 'DEMUXER');
 		while (<INFO>) {
 			$demux .= $_;
 		}
