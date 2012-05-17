@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -d /mnt/media/TV ]; then
+if [ -d /home/bjames/remotesvr/ ]; then
 	exit 0
 fi
 exit 1
