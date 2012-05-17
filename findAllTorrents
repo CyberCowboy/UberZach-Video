@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Bail if the media share isn't available
-if ! ~/bin/video/isMediaMounted; then
+if ! ~/uberzach/isMediaMounted; then
         exit 0
 fi
 
 # Run a search for each monitored series
-~/bin/video/torrentMonitored.pl null | xargs -n 1 -0 ~/bin/video/findTorrent.pl
+~/uberzach/torrentMonitored.pl null | xargs -n 1 -0 ~/uberzach/findTorrent.pl
