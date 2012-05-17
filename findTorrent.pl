@@ -43,6 +43,7 @@ my $SEED_RATIO_COUNT = 10;
 my $PROTOCOL         = 'http';
 my $UA               = 'Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10_5_5; en-us) AppleWebKit/525.18 (KHTML, like Gecko) Version/3.1.2 Safari/525.20.1';
 my $TIMEOUT          = 15;
+my %ENABLE_SOURCE    = ('TPB' => 1, 'ISO' => 0);
 
 # New fetch object
 my $cookies = mktemp('/tmp/findTorrent.cookies.XXXXXXXX');
@@ -54,17 +55,19 @@ my $fetch   = Fetch->new(
 
 # Search sources
 my %SOURCES = ();
-{
+
+# The Pirate Bay
+if ($ENABLE_SOURCE{'TPB'}) {
 
 	# Available TPB proxies, in order of preference
-	my @TPBs = ('thepiratebay.se/search/', 'tpb.jasohack.com/index.php?loadurl=/search/');
+	my @TPBs = ('thepiratebay.se/search/', 'tpb.jasohack.com/index.php?loadurl=/search/', 'http://tpb.allestec.com/index.php?loadurl=/search/');
 
-	# Automatically select a TPB proxy
+	# Automatically select a TPB proxy that returns a search page
 	my $search_url = '';
 	foreach my $url (@TPBs) {
 		my ($host) = $url =~ /^([^\/]+)/;
 		$fetch->url($PROTOCOL . '://' . $host);
-		if ($fetch->fetch('nocheck' => 1) == 200) {
+		if ($fetch->fetch('nocheck' => 1) == 200 && $fetch->content() =~ /\bSearch\b/i) {
 			$search_url = $url;
 			last;
 		} elsif ($DEBUG) {
@@ -83,15 +86,36 @@ my %SOURCES = ();
 		$SOURCES{'TPB'} = \%tmp;
 	}
 }
-{
-	my %tmp = (
-		'search_url'    => 'isohunt.com/js/json.php?rows=10&start=1&ihq=',
-		'search_suffix' => '',
-		'weight'        => 0.30,
-		'quote'         => 1
-	);
 
-	#$SOURCES{'ISO'} = \%tmp;
+# ISOhunt
+if ($ENABLE_SOURCE{'ISO'}) {
+
+	# Available ISOhunt proxies, in order of preference
+	my @ISOs = ('isohunt.com/js/json.php?rows=10&start=1&ihq=');
+
+	# Automatically select a TPB proxy that returns the non-US page
+	my $search_url = '';
+	foreach my $url (@ISOs) {
+		my ($host) = $url =~ /^([^\/]+)/;
+		$fetch->url($PROTOCOL . '://' . $host);
+		if ($fetch->fetch('nocheck' => 1) == 200 && $fetch->content() =~ /Last\s+\d+\s+files\s+indexed/i) {
+			$search_url = $url;
+			last;
+		} elsif ($DEBUG) {
+			print STDERR 'ISOhunt proxy not available: ' . $host . "\n";
+		}
+	}
+
+	# Only add ISOhunt if one of the proxies is up
+	if ($search_url) {
+		my %tmp = (
+			'search_url'    => 'isohunt.com/js/json.php?rows=10&start=1&ihq=',
+			'search_suffix' => '',
+			'weight'        => 0.30,
+			'quote'         => 1
+		);
+		$SOURCES{'ISO'} = \%tmp;
+	}
 }
 
 # Environment
