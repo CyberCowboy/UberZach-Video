@@ -10,7 +10,7 @@ if [ $? -eq 0 ]; then
   fi
   # if no blocklist file exist update blocklist
   if [ ! -f level1 ]; then
-    wget -q -O level1.gz http://update.transmissionbt.com/level1.gz
+    wget -q -O level1.gz http://list.iblocklist.com/?list=bt_level1&fileformat=p2p&archiveformat=gz
     # if download successful unzip it
     if [ -f level1.gz ]; then
           gunzip level1.gz
