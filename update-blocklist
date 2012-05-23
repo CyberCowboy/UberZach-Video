@@ -1,27 +1,5 @@
-#!/bin/bash
-
-# blocklist directory
-BLOCKLISTDIR=/home/bjames/.config/transmission-daemon/blocklists/
-
-cd ${BLOCKLISTDIR}
-if [ $? -eq 0 ]; then
-  if [ -f level1 ]; then
-    rm level1
-  fi
-  # if no blocklist file exist update blocklist
-  if [ ! -f level1 ]; then
-    wget -q -O level1.gz http://list.iblocklist.com/?list=bt_level1&fileformat=p2p&archiveformat=gz
-    # if download successful unzip it
-    if [ -f level1.gz ]; then
-          gunzip level1.gz
-          # if file extracted successfully reload transmission
-          if [ $? -eq 0 ]; then
-            chmod go+r level1
-            /etc/init.d/transmission-daemon reload
-          else
-                rm -f level1*
-          fi
-        fi
-  fi
-  cd - 2>&1 >/dev/null
-fi
+#!/bin/bash 
+BLOCKLIST_DIR=/home/bjames/.config/transmission-daemon/blocklists
+wget -q -O- http://www.bluetack.co.uk/config/level{1,2,3}.gz | \
+gunzip -c > ${BLOCKLIST_DIR}/level123 && \
+/etc/init.d/transmission-daemon reload

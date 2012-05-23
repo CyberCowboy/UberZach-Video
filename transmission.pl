@@ -27,7 +27,7 @@ sub runAndCheck(@);
 
 # Parameters
 my $maxAge        = 2.5 * 86400;
-my $tvDir         = '/home/bjames/remotesvr';
+my $tvDir         = '/home/bjames/remotesvr/Movies/Shows';
 my $monitoredExec = '/home/bjames/uberzach/torrentMonitored.pl';
 my $host          = 'http://localhost:9091';
 my $url           = $host . '/transmission/rpc';
