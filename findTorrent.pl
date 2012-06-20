@@ -223,7 +223,7 @@ if (defined($search) && length($search) > 0) {
 		}
 
 		# Extract the episode number
-		my ($num) = $file =~ /^\s*\.?(\d+)\s*\-\s*/i;
+		my ($num) = $file =~ /^\s*(?:\d+x)?(\d+)/i;
 		if (defined($num)) {
 			$num = int($num);
 			if ($DEBUG) {
